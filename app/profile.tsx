@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Clipboard } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppStore } from '../store/useAppStore';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { useReactiveClient } from '@dynamic-labs/react-hooks';
-import { dynamicClient } from '../../client';
-import { AVATARS } from '../../constants/config';
-import RetroCrtEffects from '../../components/auth/RetroCrtEffects';
-import { usePlayerProfile } from '../../hooks/usePlayerProfile';
+import { dynamicClient } from '../client';
+import { AVATARS } from '../constants/config';
+import RetroCrtEffects from '../components/auth/RetroCrtEffects';
+import { usePlayerProfile } from '../hooks/usePlayerProfile';
 
 export default function ProfileScreen(): React.JSX.Element {
   const router = useRouter();
@@ -29,44 +30,24 @@ export default function ProfileScreen(): React.JSX.Element {
     }, [refetch, address])
   );
 
-  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
-  const [selectedAvatarName, setSelectedAvatarName] = useState<string>('CYAN VIPER');
 
-  useEffect(() => {
-    const loadAvatar = async () => {
-      try {
-        const storedName = await AsyncStorage.getItem('registered_avatar_name');
-        if (storedName) {
-          setSelectedAvatarName(storedName);
-        }
-      } catch (e) {
-        console.error('Failed to load avatar from storage:', e);
-      }
-    };
-    loadAvatar();
-  }, []);
+  const selectedAvatarName = useAppStore((state) => state.avatarName);
+  const setAvatar = useAppStore((state) => state.setAvatar);
+  const logout = useAppStore((state) => state.logout);
 
   const activeAvatar = AVATARS.find(a => a.name === selectedAvatarName) || AVATARS[0];
 
-  const handleChangeAvatar = async (avatarItem: typeof AVATARS[0]) => {
+  const handleChangeAvatar = (avatarItem: typeof AVATARS[0]) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSelectedAvatarName(avatarItem.name);
-    try {
-      await AsyncStorage.setItem('registered_avatar_name', avatarItem.name);
-      await AsyncStorage.setItem('registered_avatar_color', avatarItem.color);
-    } catch (e) {
-      console.error('Failed to save avatar choice:', e);
-    }
+    setAvatar(avatarItem.name, avatarItem.color);
   };
 
-  const PASSKEY_ENABLED = false;
-
-  const handleCopyReferral = () => {
+  const handleCopyReferral = async () => {
     if (!profile?.referralCode) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const refLink = `https://play3310.xyz/ref/${profile.referralCode}`;
-    Clipboard.setString(refLink);
+    await Clipboard.setStringAsync(refLink);
     setCopiedLink(true);
     Toast.show({
       type: 'success',
@@ -76,49 +57,13 @@ export default function ProfileScreen(): React.JSX.Element {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const handleRegisterPasskey = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (!PASSKEY_ENABLED) {
-      Toast.show({
-        type: 'info',
-        text1: 'COMING SOON',
-        text2: 'Passkey login will be available in a future update.',
-      });
-      return;
-    }
-    setIsRegisteringPasskey(true);
-    try {
-      await client.passkeys.register();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Toast.show({
-        type: 'success',
-        text1: 'LINK SUCCESSFUL',
-        text2: 'Biometric passkey has been successfully registered.',
-      });
-    } catch (error: any) {
-      console.error('Passkey registration failed:', error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      const isNetworkError = error.message?.includes('Network request failed') || error.message?.includes('fetch');
-      Toast.show({
-        type: 'error',
-        text1: 'LINK FAILED',
-        text2: isNetworkError
-          ? 'Network connection failed. Please check your internet connection.'
-          : error.message || 'Failed to establish biometric key.',
-      });
-    } finally {
-      setIsRegisteringPasskey(false);
-    }
-  };
+
 
   const handleLogout = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       await client.auth.logout();
-      await AsyncStorage.removeItem('jwt_token');
-      await AsyncStorage.removeItem('registered_username');
-      await AsyncStorage.removeItem('registered_avatar_color');
-      await AsyncStorage.removeItem('registered_avatar_name');
+      logout();
       router.replace('/(auth)/sign-in');
     } catch (error) {
       console.error('Logout failed:', error);
@@ -130,18 +75,46 @@ export default function ProfileScreen(): React.JSX.Element {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27' }}>
         <View className="flex-1 w-full px-4 pt-2 items-center justify-start gap-4">
           {/* Top Area: Branding & Title */}
-          <View className="items-center w-full">
-            <View className="items-center mb-0.5 mt-1">
-              <Text className="font-arcade text-[10px] text-secondary tracking-[2px] opacity-80">
+          <View className="flex-row items-center justify-between w-full mb-1">
+            {/* Left side: Back Button */}
+            <View className="w-16">
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(tabs)/game');
+                  }
+                }}
+                className="px-2 py-1 flex-row items-center gap-0.5 border rounded-lg justify-center"
+                style={{
+                  borderColor: '#00FFFF40',
+                  backgroundColor: '#07091a',
+                }}
+              >
+                <Ionicons name="chevron-back" size={12} color="#00FFFF" />
+                <Text className="font-pixel text-[9px]" style={{ color: "#00FFFF" }}>
+                  BACK
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Center: Title & Console Branding */}
+            <View className="flex-1 items-center">
+              <Text className="font-arcade text-[10px] text-secondary tracking-[2px] opacity-80 text-center">
                 {"// 3310 CONSOLE //"}
               </Text>
-              <Text className="font-pixel text-[11px] text-grey-100 mt-0.5">
+              <Text className="font-pixel text-[10px] text-grey-100 mt-0.5 text-center">
                 SECURE DECRYPTED USER PROFILE
               </Text>
+              <Text className="font-terminal text-grey-100 text-[13px] text-center mt-0.5">
+                AGENT: FETCHING PROFILE DATA...
+              </Text>
             </View>
-            <Text className="font-terminal text-grey-100 text-[14px] text-center mb-1">
-              AGENT: FETCHING PROFILE DATA...
-            </Text>
+
+            {/* Right side: Spacer for alignment balance */}
+            <View className="w-16" />
           </View>
 
           {/* Loading Profile Card */}
@@ -178,20 +151,46 @@ export default function ProfileScreen(): React.JSX.Element {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27' }}>
       <View className="flex-1 w-full px-4 pt-2 items-center justify-start gap-4">
         {/* Top Area: Branding & Title */}
-        <View className="items-center w-full">
-          {/* Console Branding */}
-          <View className="items-center mb-0.5 mt-1">
-            <Text className="font-arcade text-[10px] text-secondary tracking-[2px] opacity-80">
+        <View className="flex-row items-center justify-between w-full mb-1">
+          {/* Left side: Back Button */}
+          <View className="w-16">
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(tabs)/game');
+                }
+              }}
+              className="px-2 py-1 flex-row items-center gap-0.5 border rounded-lg justify-center"
+              style={{
+                borderColor: `${activeAvatar.color}40`,
+                backgroundColor: '#07091a',
+              }}
+            >
+              <Ionicons name="chevron-back" size={12} color={activeAvatar.color} />
+              <Text className="font-pixel text-[9px]" style={{ color: activeAvatar.color }}>
+                BACK
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Center: Title & Console Branding */}
+          <View className="flex-1 items-center">
+            <Text className="font-arcade text-[10px] text-secondary tracking-[2px] opacity-80 text-center">
               {"// 3310 CONSOLE //"}
             </Text>
-            <Text className="font-pixel text-[11px] text-grey-100 mt-0.5">
+            <Text className="font-pixel text-[10px] text-grey-100 mt-0.5 text-center">
               SECURE DECRYPTED USER PROFILE
             </Text>
+            <Text className="font-terminal text-grey-100 text-[13px] text-center mt-0.5">
+              AGENT: {profile?.username || 'UNKNOWN'} ACTIVE
+            </Text>
           </View>
-          
-          <Text className="font-terminal text-grey-100 text-[14px] text-center mb-1">
-            AGENT: {profile?.username || 'UNKNOWN'} ACTIVE
-          </Text>
+
+          {/* Right side: Spacer for alignment balance */}
+          <View className="w-16" />
         </View>
 
         {/* Middle Area: Profile Card (styled like game screen canvas) */}
@@ -357,33 +356,15 @@ export default function ProfileScreen(): React.JSX.Element {
             </View>
           </View>
 
-          {/* Action buttons (Logout & Passkey) */}
-          <View className="w-full flex-row gap-2 mb-2">
-            <TouchableOpacity
-              onPress={handleRegisterPasskey}
-              disabled={isRegisteringPasskey}
-              activeOpacity={0.8}
-              className="flex-1 py-2.5 bg-accent/5 border border-accent rounded-xl flex-row items-center justify-center gap-1.5"
-            >
-              {isRegisteringPasskey ? (
-                <ActivityIndicator size="small" color="#00FF00" />
-              ) : (
-                <>
-                  <Ionicons name="finger-print" size={12} color="#00FF00" />
-                  <Text className="font-pixel_bold text-accent text-[9px] tracking-wider">
-                    BIOMETRIC KEY
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
+          {/* Action buttons (Logout) */}
+          <View className="w-full mb-2">
             <TouchableOpacity
               onPress={handleLogout}
               activeOpacity={0.8}
-              className="flex-1 py-2.5 bg-destructive/5 border border-red-500 rounded-xl flex-row items-center justify-center gap-1.5"
+              className="w-full py-3 bg-[#FF0000]/10 border border-red-500 rounded-xl flex-row items-center justify-center gap-1.5"
             >
-              <Ionicons name="log-out-outline" size={12} color="white" />
-              <Text className="font-pixel_bold text-white text-[9px] tracking-wider">
+              <Ionicons name="log-out-outline" size={14} color="white" />
+              <Text className="font-pixel_bold text-white text-[10px] tracking-wider">
                 LOGOUT TERMINAL
               </Text>
             </TouchableOpacity>

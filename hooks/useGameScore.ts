@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { BACKEND_URL } from '../constants/config';
 import { fetchWithTimeout } from '../utils/helpers';
+import { useAppStore } from '../store/useAppStore';
 
 export interface GameSessionInfo {
   playerAddress: string;
@@ -19,48 +19,37 @@ export interface GameSessionInfo {
 
 export const useGameScore = () => {
   const queryClient = useQueryClient();
-  const [gameSessionId, setGameSessionId] = useState<string | null>(null);
+  
+  const gameSessionId = useAppStore((state) => state.gameSessionId);
+  const setGameSessionId = useAppStore((state) => state.setGameSessionId);
+  const pendingScore = useAppStore((state) => state.pendingScore);
+  const setPendingScore = useAppStore((state) => state.setPendingScore);
 
   // Formatted timer strings
   const [refillCountdown, setRefillCountdown] = useState<string>('');
   const [hourlyCountdown, setHourlyCountdown] = useState<string>('');
 
-  const [pendingScore, setPendingScore] = useState<{ gameSessionId: string; score: number } | null>(null);
   const [isSyncingPending, setIsSyncingPending] = useState<boolean>(false);
 
   const timerIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
 
   // Helper: Retrieve authorization headers
   const getAuthHeaders = async (): Promise<HeadersInit> => {
-    const token = await AsyncStorage.getItem('jwt_token');
+    const token = useAppStore.getState().token;
     return {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : '',
     };
   };
 
-  // Helper to load pending score on initialization/focus
-  const loadPendingScore = useCallback(async () => {
-    try {
-      const stored = await AsyncStorage.getItem('pending_score_sync');
-      if (stored) {
-        setPendingScore(JSON.parse(stored));
-      } else {
-        setPendingScore(null);
-      }
-    } catch (e) {
-      console.error('[useGameScore] Error loading pending score:', e);
-    }
-  }, []);
-
   // Sync the pending offline score manually/automatically
   const syncPendingScore = useCallback(async () => {
-    try {
-      const stored = await AsyncStorage.getItem('pending_score_sync');
-      if (!stored) return;
+    const currentPending = useAppStore.getState().pendingScore;
+    if (!currentPending) return;
 
+    try {
       setIsSyncingPending(true);
-      const { gameSessionId: storedSessionId, score: storedScore } = JSON.parse(stored);
+      const { gameSessionId: storedSessionId, score: storedScore } = currentPending;
       const headers = await getAuthHeaders();
       const response = await fetchWithTimeout(`${BACKEND_URL}/api/scores/validate-score`, {
         method: 'POST',
@@ -75,7 +64,6 @@ export const useGameScore = () => {
         const errData = await response.json();
         // Replay Protection / server-side already saved case
         if (errData.error === 'INVALID_OR_SUBMITTED_SESSION') {
-          await AsyncStorage.removeItem('pending_score_sync');
           setPendingScore(null);
           queryClient.invalidateQueries({ queryKey: ['gameSession'] });
           queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
@@ -89,7 +77,6 @@ export const useGameScore = () => {
         throw new Error(errData.error || 'Failed to validate score.');
       }
 
-      await AsyncStorage.removeItem('pending_score_sync');
       setPendingScore(null);
       queryClient.invalidateQueries({ queryKey: ['gameSession'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
@@ -114,21 +101,16 @@ export const useGameScore = () => {
     } finally {
       setIsSyncingPending(false);
     }
-  }, [queryClient]);
-
-  // Load pending score on mount
-  useEffect(() => {
-    loadPendingScore();
-  }, [loadPendingScore]);
+  }, [queryClient, setPendingScore]);
 
   // Background auto-sync on hook load/focus
   useEffect(() => {
     const autoSyncPendingScore = async () => {
+      const currentPending = useAppStore.getState().pendingScore;
+      if (!currentPending) return;
+
       try {
-        const stored = await AsyncStorage.getItem('pending_score_sync');
-        if (!stored) return;
-        
-        const { gameSessionId: storedSessionId, score: storedScore } = JSON.parse(stored);
+        const { gameSessionId: storedSessionId, score: storedScore } = currentPending;
         const headers = await getAuthHeaders();
         const response = await fetchWithTimeout(`${BACKEND_URL}/api/scores/validate-score`, {
           method: 'POST',
@@ -140,7 +122,6 @@ export const useGameScore = () => {
         });
 
         if (response.ok) {
-          await AsyncStorage.removeItem('pending_score_sync');
           setPendingScore(null);
           queryClient.invalidateQueries({ queryKey: ['gameSession'] });
           queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
@@ -153,7 +134,6 @@ export const useGameScore = () => {
           const errData = await response.json();
           // If session is already submitted or expired/invalid, clear it to avoid blocking user
           if (errData.error === 'INVALID_OR_SUBMITTED_SESSION') {
-            await AsyncStorage.removeItem('pending_score_sync');
             setPendingScore(null);
             queryClient.invalidateQueries({ queryKey: ['gameSession'] });
             queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
@@ -176,7 +156,7 @@ export const useGameScore = () => {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [queryClient]);
+  }, [queryClient, setPendingScore]);
 
   // TanStack Query to fetch session info
   const { data: sessionInfo, isLoading: isQueryLoading } = useQuery<GameSessionInfo | null, Error>({
@@ -273,9 +253,7 @@ export const useGameScore = () => {
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
       
       // Clear pending score locally if any
-      AsyncStorage.removeItem('pending_score_sync').then(() => {
-        setPendingScore(null);
-      }).catch(err => console.error('Failed to clear pending score:', err));
+      setPendingScore(null);
 
       if (data?.isValid) {
         Toast.show({
@@ -300,16 +278,12 @@ export const useGameScore = () => {
       
       if (isNetworkError && gameSessionId) {
         const offlineData = { gameSessionId, score: variables };
-        AsyncStorage.setItem('pending_score_sync', JSON.stringify(offlineData))
-          .then(() => {
-            setPendingScore(offlineData);
-            Toast.show({
-              type: 'error',
-              text1: 'SUBMISSION FAILED (OFFLINE)',
-              text2: 'Score saved locally. Tap "Submit Score" when your connection is stable.',
-            });
-          })
-          .catch(err => console.error('Failed to save offline score:', err));
+        setPendingScore(offlineData);
+        Toast.show({
+          type: 'error',
+          text1: 'SUBMISSION FAILED (OFFLINE)',
+          text2: 'Score saved locally. Tap "Submit Score" when your connection is stable.',
+        });
       } else {
         Toast.show({
           type: 'error',
@@ -323,8 +297,8 @@ export const useGameScore = () => {
   // Start a new game session wrapper
   const startGameAttempt = useCallback(async (): Promise<string | null> => {
     try {
-      const stored = await AsyncStorage.getItem('pending_score_sync');
-      if (stored) {
+      const currentPending = useAppStore.getState().pendingScore;
+      if (currentPending) {
         Toast.show({
           type: 'error',
           text1: 'SUBMISSION REQUIRED',

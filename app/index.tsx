@@ -1,31 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Onboarding from '@/components/Onboarding';
 import { dynamicClient } from '../client';
 import { useReactiveClient } from '@dynamic-labs/react-hooks';
 import { BACKEND_URL } from '../constants/config';
+import { useAppStore } from '../store/useAppStore';
 
 export default function Index() {
   const router = useRouter();
   const client = useReactiveClient(dynamicClient);
   const [isChecking, setIsChecking] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  
+  const hasHydrated = useAppStore((state) => state._hasHydrated);
+  const onboardingCompleted = useAppStore((state) => state.onboardingCompleted);
+  const login = useAppStore((state) => state.login);
+  const setOnboardingCompleted = useAppStore((state) => state.setOnboardingCompleted);
 
   useEffect(() => {
-    checkAppStatus();
-  }, [client.auth.authenticatedUser, client.wallets.primary]);
+    if (hasHydrated) {
+      checkAppStatus();
+    }
+  }, [hasHydrated, client.auth.authenticatedUser, client.wallets.primary]);
 
   const checkAppStatus = async () => {
     try {
       setIsChecking(true);
-      
-      const onboarded = await AsyncStorage.getItem('onboarding_completed');
 
-      if (onboarded === 'true') {
-        setShowOnboarding(false);
-        
+      if (onboardingCompleted) {
         // Check if authenticated on Dynamic
         if (client.auth.authenticatedUser) {
           const address = client.wallets.primary?.address;
@@ -45,8 +47,7 @@ export default function Index() {
                 const loginData = await loginResponse.json();
                 
                 if (loginData.token) {
-                  await AsyncStorage.setItem('jwt_token', loginData.token);
-                  await AsyncStorage.setItem('registered_username', loginData.player.username);
+                  login(loginData.token, loginData.player.username);
                   router.replace('/(tabs)/game');
                   return;
                 }
@@ -66,12 +67,9 @@ export default function Index() {
         } else {
           router.replace('/(auth)/sign-in');
         }
-      } else {
-        setShowOnboarding(true);
       }
     } catch (error) {
-      console.error('Error reading AsyncStorage status:', error);
-      setShowOnboarding(true);
+      console.error('Error checking authentication status:', error);
     } finally {
       // Only complete loading check if we are NOT waiting for the wallet address
       if (!(client.auth.authenticatedUser && !client.wallets.primary?.address)) {
@@ -80,18 +78,12 @@ export default function Index() {
     }
   };
 
-  const handleOnboardingComplete = async () => {
-    try {
-      await AsyncStorage.setItem('onboarding_completed', 'true');
-      setShowOnboarding(false);
-      router.replace('/(auth)/sign-in');
-    } catch (error) {
-      console.error('Error saving onboarding completion:', error);
-      router.replace('/(auth)/sign-in');
-    }
+  const handleOnboardingComplete = () => {
+    setOnboardingCompleted(true);
+    router.replace('/(auth)/sign-in');
   };
 
-  if (isChecking) {
+  if (!hasHydrated || isChecking) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0A0E27', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#00FFFF" />
@@ -99,7 +91,8 @@ export default function Index() {
     );
   }
 
-  return showOnboarding ? (
+  return !onboardingCompleted ? (
     <Onboarding onComplete={handleOnboardingComplete} />
   ) : null;
 }
+

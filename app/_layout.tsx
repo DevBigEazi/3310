@@ -9,6 +9,8 @@ import { dynamicClient } from '../client';
 import { View, Text } from 'react-native';
 import Toast, { ToastConfig, BaseToastProps } from 'react-native-toast-message';
 import { QueryClient, QueryCache, MutationCache, QueryClientProvider } from '@tanstack/react-query';
+import { useAppStore } from '../store/useAppStore';
+import { SessionSync } from '../components/auth/SessionSync';
 
 // Toast Component
 const toastConfig: ToastConfig = {
@@ -92,6 +94,18 @@ const toastConfig: ToastConfig = {
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error: any, query) => {
+      const errorMsg = error.message || '';
+      if (
+        errorMsg.includes('Status: 401') ||
+        errorMsg.includes('Status: 403') ||
+        errorMsg.includes('UNAUTHORIZED') ||
+        errorMsg.includes('INVALID_TOKEN')
+      ) {
+        console.log('[QueryCache] Auth error detected, clearing token:', errorMsg);
+        useAppStore.getState().logout();
+        return;
+      }
+
       // Skip global toast if query meta indicates so
       if (query.meta?.preventGlobalToast) return;
 
@@ -109,6 +123,18 @@ const queryClient = new QueryClient({
   }),
   mutationCache: new MutationCache({
     onError: (error: any, _variables, _context, mutation) => {
+      const errorMsg = error.message || '';
+      if (
+        errorMsg.includes('Status: 401') ||
+        errorMsg.includes('Status: 403') ||
+        errorMsg.includes('UNAUTHORIZED') ||
+        errorMsg.includes('INVALID_TOKEN')
+      ) {
+        console.log('[MutationCache] Auth error detected, clearing token:', errorMsg);
+        useAppStore.getState().logout();
+        return;
+      }
+
       // Skip global toast if mutation meta indicates so
       if (mutation.meta?.preventGlobalToast) return;
 
@@ -154,10 +180,12 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <dynamicClient.reactNative.WebView />
+      <SessionSync />
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
       <StatusBar style="auto" />
       <Toast config={toastConfig} />

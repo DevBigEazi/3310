@@ -7,10 +7,9 @@ interface LoginStepProps {
   email: string;
   setEmail: (val: string) => void;
   isLoading: boolean;
-  activeProvider: 'google' | 'passkey' | 'email' | null;
+  activeProvider: 'google' | 'email' | null;
   onSubmitEmail: () => void;
   onSocialLogin: (provider: 'google') => void;
-  onPasskeyLogin: () => void;
 }
 
 export default function LoginStep({
@@ -20,7 +19,6 @@ export default function LoginStep({
   activeProvider,
   onSubmitEmail,
   onSocialLogin,
-  onPasskeyLogin,
 }: LoginStepProps): React.JSX.Element {
   return (
     <Animated.View entering={FadeIn.duration(400)} className="w-full">
@@ -38,7 +36,7 @@ export default function LoginStep({
         SECURE LOGIN
       </Text>
 
-      {/* Social and Passkey login grid */}
+      {/* Social login */}
       <View className="w-full gap-3 mb-6">
         <TouchableOpacity
           onPress={() => onSocialLogin('google')}
@@ -53,30 +51,6 @@ export default function LoginStep({
               <FontAwesome name="google" size={20} color="white" />
               <Text className="font-pixel_bold text-white text-sm tracking-wider">
                 AUTHORIZE WITH GOOGLE
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={onPasskeyLogin}
-          disabled={isLoading}
-          activeOpacity={0.85}
-          className="w-full border-2 border-accent rounded-xl py-4 bg-accent/5 flex-row justify-center items-center gap-3"
-          style={{
-            shadowColor: '#00FF00',
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 0.4,
-            shadowRadius: 6,
-          }}
-        >
-          {activeProvider === 'passkey' ? (
-            <ActivityIndicator size="small" color="#00FF00" />
-          ) : (
-            <>
-              <Ionicons name="key-outline" size={20} color="#00FF00" />
-              <Text className="font-pixel_bold text-accent text-sm tracking-wider">
-                AUTHORIZE WITH PASSKEY
               </Text>
             </>
           )}

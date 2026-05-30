@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { TextInput, NativeSyntheticEvent, TextInputKeyPressEvent } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppStore } from '../store/useAppStore';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 import { useReactiveClient } from '@dynamic-labs/react-hooks';
@@ -10,6 +10,9 @@ import { BACKEND_URL, AVATARS } from '../constants/config';
 import { fetchWithTimeout } from '../utils/helpers';
 
 export const useSignIn = () => {
+  const login = useAppStore((state) => state.login);
+  const setOnboardingCompleted = useAppStore((state) => state.setOnboardingCompleted);
+
   const router = useRouter();
   const client = useReactiveClient(dynamicClient);
   const [authStep, setAuthStep] = useState<'login' | 'decryptor' | 'register'>('login');
@@ -21,7 +24,7 @@ export const useSignIn = () => {
   const [referralCode, setReferralCode] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeProvider, setActiveProvider] = useState<'google' | 'passkey' | 'email' | null>(null);
+  const [activeProvider, setActiveProvider] = useState<'google' | 'email' | null>(null);
 
   // Focus reference for OTP boxes
   const otpInputs = useRef<Array<TextInput | null>>([]);
@@ -70,8 +73,7 @@ export const useSignIn = () => {
         const loginData = await loginResponse.json();
 
         if (loginData.token) {
-          await AsyncStorage.setItem('jwt_token', loginData.token);
-          await AsyncStorage.setItem('registered_username', loginData.player.username);
+          login(loginData.token, loginData.player.username);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           router.replace('/(tabs)/game');
         } else {
@@ -229,11 +231,13 @@ export const useSignIn = () => {
         throw new Error(registerData.message || 'Server rejected registration.');
       }
 
-      await AsyncStorage.setItem('onboarding_completed', 'true');
-      await AsyncStorage.setItem('jwt_token', registerData.token);
-      await AsyncStorage.setItem('registered_username', registerData.player.username);
-      await AsyncStorage.setItem('registered_avatar_color', AVATARS[selectedAvatar].color);
-      await AsyncStorage.setItem('registered_avatar_name', AVATARS[selectedAvatar].name);
+      setOnboardingCompleted(true);
+      login(
+        registerData.token,
+        registerData.player.username,
+        AVATARS[selectedAvatar].name,
+        AVATARS[selectedAvatar].color
+      );
       
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)/game');
@@ -301,38 +305,6 @@ export const useSignIn = () => {
     }
   };
 
-  // TODO: Enable when native build + domain setup is complete
-  const PASSKEY_ENABLED = false;
-
-  const handlePasskeyLogin = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (!PASSKEY_ENABLED) {
-      Toast.show({
-        type: 'info',
-        text1: 'COMING SOON',
-        text2: 'Passkey login will be available in a future update.',
-      });
-      return;
-    }
-    setIsLoading(true);
-    setActiveProvider('passkey');
-    try {
-      await client.auth.passkey.signIn();
-    } catch (err: unknown) {
-      console.error('Passkey sign-in failed:', err);
-      const errMsg = err instanceof Error ? err.message : 'Passkey auth failed.';
-      const isNetworkError = errMsg.includes('Network request failed') || errMsg.includes('fetch');
-      Toast.show({
-        type: 'error',
-        text1: 'SIGN IN FAILED',
-        text2: isNetworkError ? 'Network connection failed. Please check your internet connection.' : 'Passkey authentication failed.',
-      });
-    } finally {
-      setIsLoading(false);
-      setActiveProvider(null);
-    }
-  };
-
   return {
     client,
     authStep,
@@ -357,7 +329,6 @@ export const useSignIn = () => {
     handleAgentRegistration,
     handleSocialLogin,
     handleResendOtp,
-    handlePasskeyLogin,
     resendCountdown,
   };
 };

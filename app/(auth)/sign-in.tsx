@@ -11,6 +11,7 @@ import DecryptorStep from '../../components/auth/DecryptorStep';
 import RegisterStep from '../../components/auth/RegisterStep';
 import { useSignIn } from '../../hooks/useSignIn';
 import { AVATARS } from '../../constants/config';
+import { useAppStore } from '../../store/useAppStore';
 
 const CONNECTION_TIMEOUT_MS = 60000;
 
@@ -38,12 +39,12 @@ export default function SignIn(): React.JSX.Element {
     handleAgentRegistration,
     handleSocialLogin,
     handleResendOtp,
-    handlePasskeyLogin,
     resendCountdown,
   } = useSignIn();
 
+  const token = useAppStore(state => state.token);
   // Connection timeout: show escape hatch if loading takes too long
-  const isConnecting = !!client.auth.authenticatedUser && (!client.wallets.primary?.address || isLoading);
+  const isConnecting = !!token || (!!client.auth.authenticatedUser && (authStep !== 'register' || isLoading));
   const [showTimeout, setShowTimeout] = useState<boolean>(false);
   const [timeoutCountdown, setTimeoutCountdown] = useState<number>(0);
   const timeoutRef = useRef<number | null>(null);
@@ -176,7 +177,6 @@ export default function SignIn(): React.JSX.Element {
                     activeProvider={activeProvider}
                     onSubmitEmail={handleEmailSubmit}
                     onSocialLogin={handleSocialLogin}
-                    onPasskeyLogin={handlePasskeyLogin}
                   />
                 )}
                 {authStep === 'decryptor' && (

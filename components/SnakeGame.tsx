@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, GestureResponderEvent, Modal, Share, Dimensions } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { useAppStore } from '../store/useAppStore';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { AVATARS } from '../constants/config';
 import RetroCrtEffects from './auth/RetroCrtEffects';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
 
 const GRID_SIZE = 20;
 const INITIAL_SPEED = 170;
@@ -106,12 +106,16 @@ export default function SnakeGame({
   const [food, setFood] = useState<Point>({ x: 15, y: 15 });
   const [direction, setDirection] = useState<Direction>('RIGHT');
   const [score, setScore] = useState<number>(0);
-  const [highScore, setHighScore] = useState<number>(0);
   const [controlMode, setControlMode] = useState<'buttons' | 'swipe'>('buttons');
   
-  const [avatarName, setAvatarName] = useState<string>('CYAN VIPER');
-  const [speed, setSpeed] = useState<number>(INITIAL_SPEED);
-  const [avatar, setAvatar] = useState<(typeof AVATARS)[0]>(AVATARS[0]);
+  const router = useRouter();
+  const highScore = useAppStore((state) => state.highScore);
+  const setStoreHighScore = useAppStore((state) => state.setHighScore);
+  const avatarName = useAppStore((state) => state.avatarName);
+  const username = useAppStore((state) => state.username);
+  const speed = INITIAL_SPEED;
+  
+  const avatar = AVATARS.find(a => a.name === avatarName) || AVATARS[0];
 
   const theme = getThemeColors(avatar.color);
 
@@ -121,30 +125,6 @@ export default function SnakeGame({
   const lastTickDirectionRef = useRef<Direction>('RIGHT');
   
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-
-  // Load configuration and local high score on focus and game state change
-  useFocusEffect(
-    useCallback(() => {
-      const loadConfig = async () => {
-        try {
-          const storedName = await AsyncStorage.getItem('registered_avatar_name');
-          const storedHighScore = await AsyncStorage.getItem('snake_high_score');
-          
-          if (storedHighScore) {
-            setHighScore(parseInt(storedHighScore));
-          }
-
-          const selectedAvatar = AVATARS.find(a => a.name === storedName) || AVATARS[0];
-          setAvatarName(selectedAvatar.name);
-          setAvatar(selectedAvatar);
-          setSpeed(INITIAL_SPEED); 
-        } catch (error) {
-          console.error('Failed to load avatar/highscore settings', error);
-        }
-      };
-      loadConfig();
-    }, [isGameStarted])
-  );
 
   // Generate food item positions
   const generateFood = useCallback((currentSnake: Point[]): Point => {
@@ -197,8 +177,7 @@ export default function SnakeGame({
         // Update cumulative all-time score locally
         if (result.isValid) {
           const newHighScore = highScore + finalScore;
-          setHighScore(newHighScore);
-          await AsyncStorage.setItem('snake_high_score', newHighScore.toString());
+          setStoreHighScore(newHighScore);
         }
         
         if (result.isValid) {
@@ -210,7 +189,7 @@ export default function SnakeGame({
     } finally {
       setIsValidating(false);
     }
-  }, [submitGameScore, highScore]);
+  }, [submitGameScore, highScore, setStoreHighScore]);
 
   // Game loop tick function
   const gameTick = useCallback(() => {
@@ -377,15 +356,42 @@ export default function SnakeGame({
         <View className="flex-1 w-full px-4 py-2 items-center justify-between">
         {/* Top Console Branding, Status & Stats */}
         <View className="items-center w-full">
-        {/* Branding */}
-        <View className="items-center mb-0.5 mt-1">
-          <Text className="font-arcade text-[10px] tracking-[2px] opacity-80" style={{ color: avatar.color }}>
-            {"// 3310 CONSOLE //"}
+        {/* Branding (Clickable User Icon & Username) */}
+        <TouchableOpacity
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/profile');
+          }}
+          activeOpacity={0.7}
+          className="flex-row items-center gap-2 mb-1.5 mt-1 px-2.5 py-1 rounded-xl border self-start ml-4"
+          style={{
+            borderColor: `${avatar.color}30`,
+            backgroundColor: `${avatar.color}0D`,
+            shadowColor: avatar.color,
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+          }}
+        >
+          {/* User Icon */}
+          <View 
+            className="w-6 h-6 rounded-full justify-center items-center border"
+            style={{
+              borderColor: avatar.color,
+              backgroundColor: `${avatar.color}15`,
+            }}
+          >
+            <Ionicons name="person" size={11} color={avatar.color} />
+          </View>
+
+          {/* Username and Greeting */}
+          <Text className="font-pixel_bold text-[11px]" style={{ color: avatar.color }}>
+            Hi, {username || 'User'}
           </Text>
-          <Text className="font-pixel text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
-            SECURE CONNECTION ESTABLISHED
-          </Text>
-        </View>
+
+          {/* Action indicator */}
+          <Ionicons name="chevron-forward" size={10} color={theme.textMuted} className="opacity-70" />
+        </TouchableOpacity>
         
         {/* Connection status line / subtitle */}
         <Text className="font-terminal text-[14px] text-center mb-2" style={{ color: theme.textMuted }}>

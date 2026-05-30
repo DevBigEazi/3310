@@ -1,5 +1,5 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppStore } from '../store/useAppStore';
 import { BACKEND_URL } from '../constants/config';
 
 export interface PlayerProfile {
@@ -27,7 +27,7 @@ export const usePlayerProfile = (address: string | undefined): UseQueryResult<Pr
     queryKey: ['player', address],
     queryFn: async (): Promise<ProfileData | null> => {
       if (!address) return null;
-      const token = await AsyncStorage.getItem('jwt_token');
+      const token = useAppStore.getState().token;
       const response = await fetch(`${BACKEND_URL}/api/player/${address}`, {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',

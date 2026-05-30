@@ -42,7 +42,8 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -51,7 +52,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "ef25f422-67f5-4731-96ca-62365fe5c53c"
+        "projectId": "9d63e5a3-fb25-45ed-9318-72f5e97d96d9"
       }
     }
   }

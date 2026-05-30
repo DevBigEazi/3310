@@ -1,5 +1,5 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppStore } from '../store/useAppStore';
 import { BACKEND_URL } from '../constants/config';
 
 export interface LeaderboardEntry {
@@ -16,7 +16,7 @@ export const useLeaderboard = (type: 'weekly' | 'allTime'): UseQueryResult<Leade
   return useQuery<LeaderboardEntry[], Error>({
     queryKey: ['leaderboard', type],
     queryFn: async (): Promise<LeaderboardEntry[]> => {
-      const token = await AsyncStorage.getItem('jwt_token');
+      const token = useAppStore.getState().token;
       const endpoint = type === 'weekly' ? 'weekly' : 'all-time';
       const response = await fetch(`${BACKEND_URL}/api/scores/leaderboard/${endpoint}`, {
         headers: {
