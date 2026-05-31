@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import Onboarding from '@/components/Onboarding';
 import { dynamicClient } from '../client';
 import { useReactiveClient } from '@dynamic-labs/react-hooks';
@@ -9,6 +9,7 @@ import { useAppStore } from '../store/useAppStore';
 
 export default function Index() {
   const router = useRouter();
+  const segments = useSegments();
   const client = useReactiveClient(dynamicClient);
   const [isChecking, setIsChecking] = useState(true);
   
@@ -18,10 +19,11 @@ export default function Index() {
   const setOnboardingCompleted = useAppStore((state) => state.setOnboardingCompleted);
 
   useEffect(() => {
-    if (hasHydrated) {
+    const isAtRoot = !segments[0];
+    if (hasHydrated && isAtRoot) {
       checkAppStatus();
     }
-  }, [hasHydrated, client.auth.authenticatedUser, client.wallets.primary]);
+  }, [hasHydrated, client.auth.authenticatedUser, client.wallets.primary, segments]);
 
   const checkAppStatus = async () => {
     try {
@@ -83,7 +85,7 @@ export default function Index() {
     router.replace('/(auth)/sign-in');
   };
 
-  if (!hasHydrated || isChecking) {
+  if (!hasHydrated || isChecking || onboardingCompleted) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0A0E27', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#00FFFF" />
@@ -91,8 +93,6 @@ export default function Index() {
     );
   }
 
-  return !onboardingCompleted ? (
-    <Onboarding onComplete={handleOnboardingComplete} />
-  ) : null;
+  return <Onboarding onComplete={handleOnboardingComplete} />;
 }
 

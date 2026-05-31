@@ -1,17 +1,15 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Platform, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 interface DecryptorStepProps {
   email: string;
-  otp: string[];
+  otp: string;
   isLoading: boolean;
   onCancel: () => void;
-  onOtpChange: (text: string, index: number) => void;
-  onOtpKeyPress: (e: any, index: number) => void;
+  onOtpChange: (value: string) => void;
   onResendOtp: () => void;
-  otpInputsRef: React.RefObject<Array<TextInput | null>>;
   cursorVisible: boolean;
   resendCountdown: number;
 }
@@ -22,12 +20,23 @@ export default function DecryptorStep({
   isLoading,
   onCancel,
   onOtpChange,
-  onOtpKeyPress,
   onResendOtp,
-  otpInputsRef,
   cursorVisible,
   resendCountdown,
 }: DecryptorStepProps): React.JSX.Element {
+  const hiddenInputRef = React.useRef<TextInput>(null);
+
+  React.useEffect(() => {
+    // Focus the input when the component mounts
+    const timer = setTimeout(() => {
+      hiddenInputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const otpArray = otp.split('');
+  const cells = Array(6).fill('');
+
   return (
     <Animated.View entering={FadeIn.duration(400)} className="w-full">
       <TouchableOpacity 
@@ -58,40 +67,57 @@ export default function DecryptorStep({
         <Text className="text-secondary font-pixel_semibold">{email}</Text>
       </Text>
 
-      {/* OTP Boxes Grid */}
-      <View className="flex-row justify-center gap-2 mb-8">
-        {otp.map((digit, idx) => (
-          <View
-            key={idx}
-            className="w-11 h-14 rounded-lg bg-[#101432] justify-center items-center relative"
-            style={{
-              borderWidth: 2,
-              borderColor: digit ? '#00FF00' : '#404040',
-              shadowColor: digit ? '#00FF00' : 'transparent',
-              shadowOpacity: digit ? 0.3 : 0,
-              shadowRadius: 5,
-            }}
-          >
-            <TextInput
-              ref={(ref) => {
-                if (otpInputsRef.current) {
-                  otpInputsRef.current[idx] = ref;
-                }
-              }}
-              value={digit}
-              onChangeText={(text) => onOtpChange(text, idx)}
-              onKeyPress={(e) => onOtpKeyPress(e, idx)}
-              keyboardType="number-pad"
-              maxLength={1}
-              selectTextOnFocus
-              className="w-full h-full text-center font-arcade text-lg text-white"
-              style={{ paddingBottom: Platform.OS === 'android' ? 2 : 0 }}
-            />
-            {!digit && idx === otp.findIndex(v => v === '') && cursorVisible && (
-              <View className="absolute bottom-2 w-3.5 h-[3px] bg-secondary" />
-            )}
-          </View>
-        ))}
+      {/* Stylized OTP Boxes Grid and Hidden Input Container */}
+      <View className="relative mb-8 self-center">
+        <View className="flex-row justify-center gap-2">
+          {cells.map((_, idx) => {
+            const digit = otpArray[idx] || '';
+            const isFocused = idx === otpArray.length;
+            
+            return (
+              <View
+                key={idx}
+                className="w-11 h-14 rounded-lg bg-[#101432] justify-center items-center relative"
+                style={{
+                  borderWidth: 2,
+                  borderColor: digit ? '#00FF00' : (isFocused ? '#00FFFF' : '#404040'),
+                  shadowColor: digit ? '#00FF00' : (isFocused ? '#00FFFF' : 'transparent'),
+                  shadowOpacity: digit || isFocused ? 0.3 : 0,
+                  shadowRadius: 5,
+                }}
+              >
+                <Text 
+                  className="font-arcade text-lg text-white"
+                  style={{ paddingBottom: Platform.OS === 'android' ? 2 : 0 }}
+                >
+                  {digit}
+                </Text>
+                
+                {isFocused && cursorVisible && (
+                  <View className="absolute bottom-2 w-3.5 h-[3px] bg-secondary" />
+                )}
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Hidden single TextInput layered on top to capture all taps naturally */}
+        <TextInput
+          ref={hiddenInputRef}
+          value={otp}
+          onChangeText={onOtpChange}
+          keyboardType={Platform.OS === 'android' ? 'numeric' : 'number-pad'}
+          maxLength={6}
+          textContentType="oneTimeCode"
+          autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            opacity: 0.01,
+            color: 'transparent',
+            backgroundColor: 'transparent',
+          }}
+          caretHidden={true}
+        />
       </View>
 
       {/* Verification status */}

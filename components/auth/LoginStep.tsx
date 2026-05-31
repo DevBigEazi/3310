@@ -1,24 +1,20 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 interface LoginStepProps {
   email: string;
   setEmail: (val: string) => void;
   isLoading: boolean;
-  activeProvider: 'google' | 'email' | null;
   onSubmitEmail: () => void;
-  onSocialLogin: (provider: 'google') => void;
 }
 
 export default function LoginStep({
   email,
   setEmail,
   isLoading,
-  activeProvider,
   onSubmitEmail,
-  onSocialLogin,
 }: LoginStepProps): React.JSX.Element {
   return (
     <Animated.View entering={FadeIn.duration(400)} className="w-full">
@@ -35,36 +31,6 @@ export default function LoginStep({
       >
         SECURE LOGIN
       </Text>
-
-      {/* Social login */}
-      <View className="w-full gap-3 mb-6">
-        <TouchableOpacity
-          onPress={() => onSocialLogin('google')}
-          disabled={isLoading}
-          activeOpacity={0.85}
-          className="w-full border-2 border-white rounded-xl py-4 bg-white/5 flex-row justify-center items-center gap-3"
-        >
-          {activeProvider === 'google' ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <>
-              <FontAwesome name="google" size={20} color="white" />
-              <Text className="font-pixel_bold text-white text-sm tracking-wider">
-                AUTHORIZE WITH GOOGLE
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Retro Divider */}
-      <View className="flex-row items-center justify-center my-6">
-        <View className="flex-1 h-[2px] bg-grey-200" />
-        <Text className="font-arcade text-[10px] text-grey-100 px-4 tracking-widest">
-          OR
-        </Text>
-        <View className="flex-1 h-[2px] bg-grey-200" />
-      </View>
 
       {/* Email Terminal Input */}
       <View className="w-full border-2 border-secondary/40 rounded-xl bg-[#101432] p-4 mb-4">
@@ -100,7 +66,7 @@ export default function LoginStep({
             elevation: 5
           } : {}}
         >
-          {activeProvider === 'email' ? (
+          {isLoading ? (
             <ActivityIndicator size="small" color="#0A0E27" />
           ) : (
             <Text className={`font-pixel_bold text-sm tracking-wider ${!email ? 'text-grey-100' : 'text-primary'}`}>

@@ -33,9 +33,9 @@ export default function TabLayout() {
           backgroundColor: '#0A0E27', // Deep space black/blue
           borderTopWidth: 2,
           borderTopColor: '#404040', // Dark Charcoal border
-          height: (Platform.OS === 'ios' ? 60 : 56) + insets.bottom,
+          height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
-          paddingTop: 12,
+          paddingTop: 2,
         },
         tabBarLabelStyle: {
           fontFamily: 'PixelifySans-Bold',

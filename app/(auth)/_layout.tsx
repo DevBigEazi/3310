@@ -8,7 +8,7 @@ export default function AuthLayout() {
       <StatusBar
         barStyle={Platform.OS === "ios" ? "light-content" : "default"}
       />
-      <Stack>
+      <Stack screenOptions={{ gestureEnabled: false }}>
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
       </Stack>
     </>

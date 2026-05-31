@@ -19,15 +19,16 @@ export const useSignIn = () => {
   
   // Input fields
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState('');
   const [username, setUsername] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeProvider, setActiveProvider] = useState<'google' | 'email' | null>(null);
+  // Get initial values from raw client to prevent first-render flash of non-loading buttons
+  const initialUser = dynamicClient.auth.authenticatedUser;
+  const [isLoading, setIsLoading] = useState(!!initialUser);
 
   // Focus reference for OTP boxes
-  const otpInputs = useRef<Array<TextInput | null>>([]);
+  // Focus reference for OTP boxes (omitted in single input refactor)
 
   // Blink cursor for terminal inputs
   const [cursorVisible, setCursorVisible] = useState(true);
@@ -60,6 +61,8 @@ export const useSignIn = () => {
     if (!address) return;
 
     setIsLoading(true);
+    // No-op (removed activeProvider recovery)
+
     try {
       const checkResponse = await fetchWithTimeout(`${BACKEND_URL}/api/player/check/${address}`);
       const checkData = await checkResponse.json();
@@ -113,7 +116,6 @@ export const useSignIn = () => {
     
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
-    setActiveProvider('email');
     try {
       await client.auth.email.sendOTP(email.trim());
       setAuthStep('decryptor');
@@ -130,38 +132,21 @@ export const useSignIn = () => {
       });
     } finally {
       setIsLoading(false);
-      setActiveProvider(null);
     }
   };
 
-  const handleOtpChange = (text: string, index: number) => {
+  const handleOtpChange = (val: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const newOtp = [...otp];
-    newOtp[index] = text.slice(-1);
-    setOtp(newOtp);
+    const cleanValue = val.replace(/[^0-9]/g, '').slice(0, 6);
+    setOtp(cleanValue);
 
-    if (text && index < 5) {
-      otpInputs.current[index + 1]?.focus();
-    }
-    
-    if (newOtp.every(val => val !== '') && index === 5) {
-      triggerOtpVerify(newOtp.join(''));
-    }
-  };
-
-  const handleOtpKeyPress = (e: TextInputKeyPressEvent, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const newOtp = [...otp];
-      newOtp[index - 1] = '';
-      setOtp(newOtp);
-      otpInputs.current[index - 1]?.focus();
+    if (cleanValue.length === 6) {
+      triggerOtpVerify(cleanValue);
     }
   };
 
   const triggerOtpVerify = async (code: string) => {
     setIsLoading(true);
-    setActiveProvider('email');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     try {
       await client.auth.email.verifyOTP(code);
@@ -175,9 +160,7 @@ export const useSignIn = () => {
         text1: 'VERIFICATION FAILED',
         text2: isNetworkError ? 'Network connection failed. Please check your internet connection.' : 'Invalid code. Please try again.',
       });
-    } finally {
       setIsLoading(false);
-      setActiveProvider(null);
     }
   };
 
@@ -255,32 +238,12 @@ export const useSignIn = () => {
     }
   };
 
-  const handleSocialLogin = async (provider: 'google') => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsLoading(true);
-    setActiveProvider(provider);
-    try {
-      await client.auth.social.connect({ provider });
-    } catch (err: unknown) {
-      console.error(`Social auth failed for ${provider}:`, err);
-      const errMsg = err instanceof Error ? err.message : 'Failed to authenticate.';
-      const isNetworkError = errMsg.includes('Network request failed') || errMsg.includes('fetch');
-      Toast.show({
-        type: 'error',
-        text1: 'SIGN IN FAILED',
-        text2: isNetworkError ? 'Network connection failed. Please check your internet connection.' : 'Could not authenticate. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-      setActiveProvider(null);
-    }
-  };
+  // Removed handleSocialLogin (Google auth disabled)
 
   const handleResendOtp = async () => {
     if (resendCountdown > 0) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
-    setActiveProvider('email');
     try {
       await client.auth.email.resendOTP();
       setResendCountdown(60);
@@ -301,7 +264,6 @@ export const useSignIn = () => {
       });
     } finally {
       setIsLoading(false);
-      setActiveProvider(null);
     }
   };
 
@@ -320,14 +282,10 @@ export const useSignIn = () => {
     selectedAvatar,
     setSelectedAvatar,
     isLoading,
-    activeProvider,
     cursorVisible,
-    otpInputs,
     handleEmailSubmit,
     handleOtpChange,
-    handleOtpKeyPress,
     handleAgentRegistration,
-    handleSocialLogin,
     handleResendOtp,
     resendCountdown,
   };

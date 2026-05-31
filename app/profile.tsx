@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -31,6 +31,7 @@ export default function ProfileScreen(): React.JSX.Element {
   );
 
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
 
   const selectedAvatarName = useAppStore((state) => state.avatarName);
   const setAvatar = useAppStore((state) => state.setAvatar);
@@ -59,20 +60,52 @@ export default function ProfileScreen(): React.JSX.Element {
 
 
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try {
-      await client.auth.logout();
-      logout();
-      router.replace('/(auth)/sign-in');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
+    Alert.alert(
+      "CONFIRM LOGOUT",
+      "Are you sure you want to log out of the console?",
+      [
+        { text: "CANCEL", style: "cancel" },
+        {
+          text: "LOGOUT",
+          style: "destructive",
+          onPress: async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            setIsLoggingOut(true);
+            try {
+              // Call Dynamic logout
+              await dynamicClient.auth.logout();
+              // Clear Zustand store (token, username, gameSessionId, pendingScore)
+              logout();
+              
+              // Poll until the Dynamic client has cleared user and primary wallet from memory
+              let attempts = 0;
+              while ((dynamicClient.auth.authenticatedUser || dynamicClient.wallets.primary?.address) && attempts < 20) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                attempts++;
+              }
+              
+              router.replace('/(auth)/sign-in');
+            } catch (error) {
+              console.error('Logout failed:', error);
+              Toast.show({
+                type: 'error',
+                text1: 'LOGOUT FAILED',
+                text2: 'Could not log out securely. Please try again.',
+              });
+            } finally {
+              setIsLoggingOut(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27', marginTop: 8 }}>
         <View className="flex-1 w-full px-4 pt-2 items-center justify-start gap-4">
           {/* Top Area: Branding & Title */}
           <View className="flex-row items-center justify-between w-full mb-1">
@@ -148,7 +181,7 @@ export default function ProfileScreen(): React.JSX.Element {
   const referralLink = profile ? `https://play3310.xyz/ref/${profile.referralCode}` : '';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27', marginTop: 8 }}>
       <View className="flex-1 w-full px-4 pt-2 items-center justify-start gap-4">
         {/* Top Area: Branding & Title */}
         <View className="flex-row items-center justify-between w-full mb-1">
@@ -360,13 +393,20 @@ export default function ProfileScreen(): React.JSX.Element {
           <View className="w-full mb-2">
             <TouchableOpacity
               onPress={handleLogout}
+              disabled={isLoggingOut}
               activeOpacity={0.8}
               className="w-full py-3 bg-[#FF0000]/10 border border-red-500 rounded-xl flex-row items-center justify-center gap-1.5"
             >
-              <Ionicons name="log-out-outline" size={14} color="white" />
-              <Text className="font-pixel_bold text-white text-[10px] tracking-wider">
-                LOGOUT TERMINAL
-              </Text>
+              {isLoggingOut ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Ionicons name="log-out-outline" size={14} color="white" />
+                  <Text className="font-pixel_bold text-white text-[10px] tracking-wider">
+                    LOGOUT TERMINAL
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>

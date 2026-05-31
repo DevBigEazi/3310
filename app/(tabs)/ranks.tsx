@@ -68,7 +68,7 @@ export default function RanksScreen(): React.JSX.Element {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27' }} className="px-4 pt-4">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27', marginTop: 8 }} className="px-4 pt-4">
       {/* Page Header */}
       <View className="items-center mb-6">
         <Text className="font-arcade text-base text-secondary tracking-widest">LEADERBOARD</Text>

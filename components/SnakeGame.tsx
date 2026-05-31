@@ -72,7 +72,6 @@ interface Point {
 }
 
 export default function SnakeGame({
-  lives,
   gamesPlayedInCurrentHour,
   refillCountdown,
   hourlyCountdown,
@@ -352,7 +351,7 @@ export default function SnakeGame({
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, marginTop: 8}}>
         <View className="flex-1 w-full px-4 py-2 items-center justify-between">
         {/* Top Console Branding, Status & Stats */}
         <View className="items-center w-full">
