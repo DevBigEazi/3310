@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useLeaderboard } from '../../hooks/useLeaderboard';
+
+const BADGE_IMAGES = {
+  FIRST_PLACE: require('../../assets/images/badge_first_place.png'),
+  SECOND_PLACE: require('../../assets/images/badge_second_place.png'),
+  THIRD_PLACE: require('../../assets/images/badge_third_place.png'),
+  TOP_5: require('../../assets/images/badge_top_5.png'),
+  TOP_10: require('../../assets/images/badge_top_10.png'),
+};
 
 const renderMiniBadges = (badges: any[] | undefined): React.JSX.Element | null => {
   if (!badges || badges.length === 0) return null;
@@ -22,29 +30,13 @@ const renderMiniBadges = (badges: any[] | undefined): React.JSX.Element | null =
         const count = counts[type];
         if (!count) return null;
 
-        let iconName: any = 'star';
-        let color = '#C0C0C0';
-        
-        if (type === 'FIRST_PLACE') {
-          iconName = 'trophy';
-          color = '#FFD700'; // Gold
-        } else if (type === 'SECOND_PLACE') {
-          iconName = 'medal';
-          color = '#E0E0E0'; // Silver
-        } else if (type === 'THIRD_PLACE') {
-          iconName = 'ribbon';
-          color = '#CD7F32'; // Bronze
-        } else if (type === 'TOP_5') {
-          iconName = 'star';
-          color = '#00FFFF'; // Neon Cyan
-        } else if (type === 'TOP_10') {
-          iconName = 'shield';
-          color = '#FF00FF'; // Neon Magenta
-        }
-
         return (
-          <View key={type} className="flex-row items-center bg-[#07091a] border border-grey-200/20 px-0.5 py-0.2 rounded">
-            <Ionicons name={iconName} size={7} color={color} />
+          <View key={type} className="flex-row items-center bg-[#07091a] border border-grey-200/20 px-1 py-0.5 rounded gap-0.5">
+            <Image 
+              source={BADGE_IMAGES[type]} 
+              style={{ width: 10, height: 10 }}
+              resizeMode="contain"
+            />
             {count > 1 && (
               <Text className="font-terminal text-[6px] text-grey-100 ml-0.5" style={{ fontSize: 6.5 }}>
                 x{count}
@@ -120,7 +112,7 @@ export default function RanksScreen(): React.JSX.Element {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27', marginTop: 8 }} className="px-4 pt-4">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27' }} className="px-4 pt-4">
       {/* Page Header */}
       <View className="items-center mb-6">
         <Text className="font-arcade text-base text-secondary tracking-widest">LEADERBOARD</Text>

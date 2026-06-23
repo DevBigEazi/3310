@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Image } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -12,6 +12,14 @@ import { dynamicClient } from '../client';
 import { AVATARS } from '../constants/config';
 import RetroCrtEffects from '../components/auth/RetroCrtEffects';
 import { usePlayerProfile } from '../hooks/usePlayerProfile';
+
+const BADGE_IMAGES = {
+  FIRST_PLACE: require('../assets/images/badge_first_place.png'),
+  SECOND_PLACE: require('../assets/images/badge_second_place.png'),
+  THIRD_PLACE: require('../assets/images/badge_third_place.png'),
+  TOP_5: require('../assets/images/badge_top_5.png'),
+  TOP_10: require('../assets/images/badge_top_10.png'),
+};
 
 export default function ProfileScreen(): React.JSX.Element {
   const router = useRouter();
@@ -203,7 +211,7 @@ export default function ProfileScreen(): React.JSX.Element {
       title: 'WEEKLY CHAMPION',
       icon: 'trophy' as const,
       color: '#FFD700', // Gold
-      description: 'Finished 1st on the weekly leaderboard (Repeatable).',
+      description: 'Finished 1st on the weekly leaderboard.',
       count: badgeCounts.FIRST_PLACE,
     },
     {
@@ -211,7 +219,7 @@ export default function ProfileScreen(): React.JSX.Element {
       title: 'ELITE RUNNER-UP',
       icon: 'medal' as const,
       color: '#E0E0E0', // Silver
-      description: 'Finished 2nd on the weekly leaderboard (Repeatable).',
+      description: 'Finished 2nd on the weekly leaderboard.',
       count: badgeCounts.SECOND_PLACE,
     },
     {
@@ -219,7 +227,7 @@ export default function ProfileScreen(): React.JSX.Element {
       title: 'THIRD PLACE HERO',
       icon: 'ribbon' as const,
       color: '#CD7F32', // Bronze
-      description: 'Finished 3rd on the weekly leaderboard (Repeatable).',
+      description: 'Finished 3rd on the weekly leaderboard.',
       count: badgeCounts.THIRD_PLACE,
     },
     {
@@ -227,7 +235,7 @@ export default function ProfileScreen(): React.JSX.Element {
       title: 'ELITE TOP 5',
       icon: 'star' as const,
       color: '#00FFFF', // Neon Cyan
-      description: 'Finished in the Top 5 of the weekly standings (Once).',
+      description: 'Finished in the Top 5 of the weekly standings.',
       count: badgeCounts.TOP_5,
     },
     {
@@ -235,13 +243,13 @@ export default function ProfileScreen(): React.JSX.Element {
       title: 'TOP 10 CHALLENGER',
       icon: 'shield' as const,
       color: '#FF00FF', // Neon Magenta
-      description: 'Finished in the Top 10 of the weekly standings (Once).',
+      description: 'Finished in the Top 10 of the weekly standings.',
       count: badgeCounts.TOP_10,
     },
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27', marginTop: 8 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27' }}>
       <ScrollView 
         contentContainerStyle={{ alignItems: 'center', paddingBottom: 32 }} 
         className="flex-1 w-full px-4 pt-2"
@@ -446,17 +454,42 @@ export default function ProfileScreen(): React.JSX.Element {
                   }}
                 >
                   <View 
-                    className="w-10 h-10 rounded-full border-2 justify-center items-center mb-1.5"
+                    className="w-10 h-10 rounded-full border-2 justify-center items-center mb-1.5 relative"
                     style={{
                       borderColor: isUnlocked ? item.color : '#404040',
                       backgroundColor: isUnlocked ? `${item.color}15` : '#40404010',
                     }}
                   >
-                    <Ionicons 
-                      name={isUnlocked ? item.icon : 'lock-closed'} 
-                      size={18} 
-                      color={isUnlocked ? item.color : '#808080'} 
-                    />
+                    {isUnlocked ? (
+                      <Image 
+                        source={BADGE_IMAGES[item.type]} 
+                        style={{ width: 28, height: 28, borderRadius: 14 }}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <Ionicons 
+                        name="lock-closed" 
+                        size={16} 
+                        color="#808080" 
+                      />
+                    )}
+                    {/* Notification-style count badge for repeatable types */}
+                    {isUnlocked && (item.type === 'FIRST_PLACE' || item.type === 'SECOND_PLACE' || item.type === 'THIRD_PLACE') && (
+                      <View 
+                        className="absolute -top-1 -right-1 bg-[#FF0055] rounded-full min-w-[15px] h-[15px] justify-center items-center px-1 border border-white"
+                        style={{
+                          zIndex: 10,
+                          shadowColor: '#000',
+                          shadowOpacity: 0.5,
+                          shadowRadius: 1.5,
+                          shadowOffset: { width: 0, height: 1 },
+                        }}
+                      >
+                        <Text className="font-pixel text-[6px] text-white text-center leading-[6px] font-bold">
+                          {item.count}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   
                   <Text 
@@ -471,21 +504,12 @@ export default function ProfileScreen(): React.JSX.Element {
                   </Text>
                   
                   <View className="mt-1.5 px-2 py-0.5 rounded bg-black/40 border border-grey-200/10">
-                    {item.type === 'TOP_5' || item.type === 'TOP_10' ? (
-                      <Text 
-                        className="font-terminal text-[8px]"
-                        style={{ color: isUnlocked ? item.color : '#808080' }}
-                      >
-                        {isUnlocked ? 'UNLOCKED' : 'LOCKED'}
-                      </Text>
-                    ) : (
-                      <Text 
-                        className="font-terminal text-[8px] font-bold"
-                        style={{ color: isUnlocked ? '#00FF00' : '#808080' }}
-                      >
-                        EARNED: {item.count}
-                      </Text>
-                    )}
+                    <Text 
+                      className="font-terminal text-[8px]"
+                      style={{ color: isUnlocked ? (item.type === 'FIRST_PLACE' || item.type === 'SECOND_PLACE' || item.type === 'THIRD_PLACE' ? '#00FF00' : item.color) : '#808080' }}
+                    >
+                      {isUnlocked ? 'UNLOCKED' : 'LOCKED'}
+                    </Text>
                   </View>
                 </View>
               );
