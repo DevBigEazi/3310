@@ -5,6 +5,58 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useLeaderboard } from '../../hooks/useLeaderboard';
 
+const renderMiniBadges = (badges: any[] | undefined): React.JSX.Element | null => {
+  if (!badges || badges.length === 0) return null;
+
+  // Group by badgeType to calculate counts
+  const counts: Record<string, number> = {};
+  badges.forEach((b) => {
+    counts[b.badgeType] = (counts[b.badgeType] || 0) + 1;
+  });
+
+  const badgeOrder = ['FIRST_PLACE', 'SECOND_PLACE', 'THIRD_PLACE', 'TOP_5', 'TOP_10'] as const;
+
+  return (
+    <View className="flex-row items-center gap-1 ml-1.5 flex-wrap">
+      {badgeOrder.map((type) => {
+        const count = counts[type];
+        if (!count) return null;
+
+        let iconName: any = 'star';
+        let color = '#C0C0C0';
+        
+        if (type === 'FIRST_PLACE') {
+          iconName = 'trophy';
+          color = '#FFD700'; // Gold
+        } else if (type === 'SECOND_PLACE') {
+          iconName = 'medal';
+          color = '#E0E0E0'; // Silver
+        } else if (type === 'THIRD_PLACE') {
+          iconName = 'ribbon';
+          color = '#CD7F32'; // Bronze
+        } else if (type === 'TOP_5') {
+          iconName = 'star';
+          color = '#00FFFF'; // Neon Cyan
+        } else if (type === 'TOP_10') {
+          iconName = 'shield';
+          color = '#FF00FF'; // Neon Magenta
+        }
+
+        return (
+          <View key={type} className="flex-row items-center bg-[#07091a] border border-grey-200/20 px-0.5 py-0.2 rounded">
+            <Ionicons name={iconName} size={7} color={color} />
+            {count > 1 && (
+              <Text className="font-terminal text-[6px] text-grey-100 ml-0.5" style={{ fontSize: 6.5 }}>
+                x{count}
+              </Text>
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
+};
+
 export default function RanksScreen(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<'weekly' | 'allTime'>('weekly');
 
@@ -172,10 +224,13 @@ export default function RanksScreen(): React.JSX.Element {
                   )}
                 </View>
 
-                {/* Username / Address */}
-                <Text className="w-[45%] font-pixel_semibold text-xs text-white" numberOfLines={1}>
-                  {item.username}
-                </Text>
+                {/* Username / Address and Badges */}
+                <View className="w-[45%] flex-row items-center">
+                  <Text className="font-pixel_semibold text-xs text-white" numberOfLines={1} style={{ maxWidth: '65%' }}>
+                    {item.username}
+                  </Text>
+                  {renderMiniBadges(item.badges)}
+                </View>
 
                 {/* Weekly Tab Columns */}
                 {activeTab === 'weekly' ? (

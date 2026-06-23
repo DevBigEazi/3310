@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -180,9 +180,74 @@ export default function ProfileScreen(): React.JSX.Element {
 
   const referralLink = profile ? `https://play3310.xyz/ref/${profile.referralCode}` : '';
 
+  // Group player's badges by type for the gallery grid
+  const badgeCounts = {
+    FIRST_PLACE: 0,
+    SECOND_PLACE: 0,
+    THIRD_PLACE: 0,
+    TOP_5: 0,
+    TOP_10: 0,
+  };
+
+  if (profile?.badges) {
+    profile.badges.forEach((b) => {
+      if (badgeCounts[b.badgeType] !== undefined) {
+        badgeCounts[b.badgeType]++;
+      }
+    });
+  }
+
+  const badgeItems = [
+    {
+      type: 'FIRST_PLACE' as const,
+      title: 'WEEKLY CHAMPION',
+      icon: 'trophy' as const,
+      color: '#FFD700', // Gold
+      description: 'Finished 1st on the weekly leaderboard (Repeatable).',
+      count: badgeCounts.FIRST_PLACE,
+    },
+    {
+      type: 'SECOND_PLACE' as const,
+      title: 'ELITE RUNNER-UP',
+      icon: 'medal' as const,
+      color: '#E0E0E0', // Silver
+      description: 'Finished 2nd on the weekly leaderboard (Repeatable).',
+      count: badgeCounts.SECOND_PLACE,
+    },
+    {
+      type: 'THIRD_PLACE' as const,
+      title: 'THIRD PLACE HERO',
+      icon: 'ribbon' as const,
+      color: '#CD7F32', // Bronze
+      description: 'Finished 3rd on the weekly leaderboard (Repeatable).',
+      count: badgeCounts.THIRD_PLACE,
+    },
+    {
+      type: 'TOP_5' as const,
+      title: 'ELITE TOP 5',
+      icon: 'star' as const,
+      color: '#00FFFF', // Neon Cyan
+      description: 'Finished in the Top 5 of the weekly standings (Once).',
+      count: badgeCounts.TOP_5,
+    },
+    {
+      type: 'TOP_10' as const,
+      title: 'TOP 10 CHALLENGER',
+      icon: 'shield' as const,
+      color: '#FF00FF', // Neon Magenta
+      description: 'Finished in the Top 10 of the weekly standings (Once).',
+      count: badgeCounts.TOP_10,
+    },
+  ];
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27', marginTop: 8 }}>
-      <View className="flex-1 w-full px-4 pt-2 items-center justify-start gap-4">
+      <ScrollView 
+        contentContainerStyle={{ alignItems: 'center', paddingBottom: 32 }} 
+        className="flex-1 w-full px-4 pt-2"
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="items-center justify-start gap-4 w-full max-w-sm">
         {/* Top Area: Branding & Title */}
         <View className="flex-row items-center justify-between w-full mb-1">
           {/* Left side: Back Button */}
@@ -352,6 +417,82 @@ export default function ProfileScreen(): React.JSX.Element {
           </View>
         </View>
 
+        {/* Badges Gallery Cabinet */}
+        <View 
+          className="w-full bg-[#0D122B] border-2 rounded-2xl p-4 relative my-1 overflow-hidden"
+          style={{
+            borderColor: activeAvatar.color,
+            shadowColor: activeAvatar.color,
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+          }}
+        >
+          <RetroCrtEffects />
+          
+          <Text className="font-arcade text-[10px] text-secondary mb-3.5 tracking-widest text-center">
+            // SYSTEM BADGES CABINET //
+          </Text>
+          
+          <View className="flex-row flex-wrap justify-between w-full">
+            {badgeItems.map((item) => {
+              const isUnlocked = item.count > 0;
+              return (
+                <View 
+                  key={item.type} 
+                  className="w-[48%] bg-grey-200/5 border rounded-xl p-2.5 items-center mb-3.5 relative"
+                  style={{
+                    borderColor: isUnlocked ? `${item.color}40` : '#40404020',
+                    opacity: isUnlocked ? 1 : 0.45,
+                  }}
+                >
+                  <View 
+                    className="w-10 h-10 rounded-full border-2 justify-center items-center mb-1.5"
+                    style={{
+                      borderColor: isUnlocked ? item.color : '#404040',
+                      backgroundColor: isUnlocked ? `${item.color}15` : '#40404010',
+                    }}
+                  >
+                    <Ionicons 
+                      name={isUnlocked ? item.icon : 'lock-closed'} 
+                      size={18} 
+                      color={isUnlocked ? item.color : '#808080'} 
+                    />
+                  </View>
+                  
+                  <Text 
+                    className="font-pixel_bold text-[7.5px] text-center"
+                    style={{ color: isUnlocked ? item.color : '#808080' }}
+                  >
+                    {item.title}
+                  </Text>
+                  
+                  <Text className="font-poppins text-[6.5px] text-grey-100 text-center mt-1 leading-[9px] h-6 px-0.5">
+                    {item.description}
+                  </Text>
+                  
+                  <View className="mt-1.5 px-2 py-0.5 rounded bg-black/40 border border-grey-200/10">
+                    {item.type === 'TOP_5' || item.type === 'TOP_10' ? (
+                      <Text 
+                        className="font-terminal text-[8px]"
+                        style={{ color: isUnlocked ? item.color : '#808080' }}
+                      >
+                        {isUnlocked ? 'UNLOCKED' : 'LOCKED'}
+                      </Text>
+                    ) : (
+                      <Text 
+                        className="font-terminal text-[8px] font-bold"
+                        style={{ color: isUnlocked ? '#00FF00' : '#808080' }}
+                      >
+                        EARNED: {item.count}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
         {/* Bottom Area: Referrals and Security */}
         <View className="w-full max-w-sm mt-1 items-center">
           {/* Referral Copy Row */}
@@ -411,6 +552,7 @@ export default function ProfileScreen(): React.JSX.Element {
           </View>
         </View>
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

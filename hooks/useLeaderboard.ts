@@ -1,6 +1,7 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { useAppStore } from '../store/useAppStore';
 import { BACKEND_URL } from '../constants/config';
+import { Badge } from './usePlayerProfile';
 
 export interface LeaderboardEntry {
   address: string;
@@ -10,6 +11,7 @@ export interface LeaderboardEntry {
   highScore?: number;
   totalGames?: number;
   referralPoints: number;
+  badges?: Badge[];
 }
 
 export const useLeaderboard = (type: 'weekly' | 'allTime'): UseQueryResult<LeaderboardEntry[], Error> => {

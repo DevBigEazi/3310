@@ -59,7 +59,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     {
       subtitle: "STAGE 03: INSTANT ACCESS",
       title: "WEB3 EMBEDDED",
-      description: "Sign in with Google, Passkey, or Email. Everything runs seamlessly in the background. Just play, earn, and spend.",
+      description: "Sign in with Email. Everything runs seamlessly in the background. Just play, earn, and spend.",
       image: require("@/assets/images/logo-nobg.png"),
       color: "#FFD700", // Gold
       glowClass: "text-reward",
