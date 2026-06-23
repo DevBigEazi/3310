@@ -140,7 +140,7 @@ export default function RegisterStep({
             <View className="flex-row justify-between mb-1">
               <Text className="font-pixel text-[10px] text-grey-100">SCORE PER FOOD</Text>
               <Text className="font-arcade text-[10px]" style={{ color: avatar.color }}>
-                {5 * (avatar.speed >= 90 ? 4 : avatar.speed >= 80 ? 3 : avatar.speed >= 70 ? 2 : 1)} PTS
+                {5 * (avatar.speed >= 70 ? 4 : avatar.speed >= 60 ? 3 : avatar.speed >= 50 ? 2 : 1)} PTS
               </Text>
             </View>
             <View className="flex-row items-center gap-1">
@@ -149,7 +149,7 @@ export default function RegisterStep({
                 style={{ backgroundColor: `${avatar.color}20`, borderWidth: 1, borderColor: `${avatar.color}40` }}
               >
                 <Text className="font-arcade text-[8px]" style={{ color: avatar.color }}>
-                  {avatar.speed >= 90 ? '4' : avatar.speed >= 80 ? '3' : avatar.speed >= 70 ? '2' : '1'}x MULTIPLIER
+                  {avatar.speed >= 70 ? '4' : avatar.speed >= 60 ? '3' : avatar.speed >= 50 ? '2' : '1'}x MULTIPLIER
                 </Text>
               </View>
             </View>
