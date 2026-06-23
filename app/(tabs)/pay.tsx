@@ -32,7 +32,7 @@ export default function PayScreen(): React.JSX.Element {
   }));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27', marginTop: 8 }} className="px-4 pt-4">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27' }} className="px-4 pt-4">
       <ScrollView contentContainerStyle={{ alignItems: 'center', paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Page Title */}
         <View className="items-center mb-6">

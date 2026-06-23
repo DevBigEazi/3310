@@ -3,7 +3,7 @@ import { useAppStore } from '../store/useAppStore';
 import { BACKEND_URL } from '../constants/config';
 
 export interface Badge {
-  badgeType: 'FIRST_PLACE' | 'SECOND_PLACE' | 'THIRD_PLACE' | 'TOP_5' | 'TOP_10';
+  badgeType: 'FIRST_PLACE' | 'SECOND_PLACE' | 'THIRD_PLACE' | 'TOP_5' | 'TOP_10' | 'GOAT';
   earnedAt: string;
   weekId: number;
 }

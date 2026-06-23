@@ -8,8 +8,8 @@ export const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL && !process.env.E
   : `http://${host}:8000`;
 
 export const AVATARS = [
-  { name: 'CYAN VIPER', color: '#00FFFF', glowClass: 'text-secondary', speed: 85, size: 45, glow: 95 },
+  { name: 'CYAN VIPER', color: '#00FFFF', glowClass: 'text-secondary', speed: 45, size: 45, glow: 95 },
+  { name: 'MAGENTA MAMBA', color: '#FF00FF', glowClass: 'text-destructive', speed: 55, size: 75, glow: 65 },
   { name: 'LIME PYTHON', color: '#00FF00', glowClass: 'text-accent', speed: 65, size: 85, glow: 55 },
-  { name: 'GOLDEN COBRA', color: '#FFD700', glowClass: 'text-reward', speed: 95, size: 55, glow: 85 },
-  { name: 'MAGENTA MAMBA', color: '#FF00FF', glowClass: 'text-destructive', speed: 75, size: 75, glow: 65 },
+  { name: 'GOLDEN COBRA', color: '#FFD700', glowClass: 'text-reward', speed: 75, size: 55, glow: 85 },
 ];

@@ -80,7 +80,7 @@ export default function RegisterStep({
           )}
         </View>
         <Text className="text-[10px] font-terminal text-grey-100 text-right mb-2">
-          LENGTH: {username.length}/20
+          LENGTH: <Text className="font-arcade text-[8px]">{username.length}</Text>/<Text className="font-arcade text-[8px]">20</Text>
         </Text>
 
         {/* Avatar grid selection */}
@@ -124,33 +124,53 @@ export default function RegisterStep({
             SYS: {avatar.name}
           </Text>
 
-          {/* Stat Row 1: SPEED */}
+          {/* Stat Row 1: SPEED ENGINE */}
           <View className="mb-2">
             <View className="flex-row justify-between mb-1">
               <Text className="font-pixel text-[10px] text-grey-100">SPEED ENGINE</Text>
-              <Text className="font-terminal text-xs text-white">{avatar.speed}%</Text>
+              <Text className="font-arcade text-[10px] text-white">{avatar.speed}%</Text>
             </View>
             <View className="h-[6px] bg-grey-200 rounded overflow-hidden">
               <View className="h-full bg-secondary" style={{ width: `${avatar.speed}%` }} />
             </View>
           </View>
 
-          {/* Stat Row 2: TAIL CAPACITY */}
+          {/* Stat Row 2: SCORE PER FOOD */}
+          <View className="mb-2">
+            <View className="flex-row justify-between mb-1">
+              <Text className="font-pixel text-[10px] text-grey-100">SCORE PER FOOD</Text>
+              <Text className="font-arcade text-[10px]" style={{ color: avatar.color }}>
+                {5 * (avatar.speed >= 90 ? 4 : avatar.speed >= 80 ? 3 : avatar.speed >= 70 ? 2 : 1)} PTS
+              </Text>
+            </View>
+            <View className="flex-row items-center gap-1">
+              <View 
+                className="px-1.5 py-0.5 rounded"
+                style={{ backgroundColor: `${avatar.color}20`, borderWidth: 1, borderColor: `${avatar.color}40` }}
+              >
+                <Text className="font-arcade text-[8px]" style={{ color: avatar.color }}>
+                  {avatar.speed >= 90 ? '4' : avatar.speed >= 80 ? '3' : avatar.speed >= 70 ? '2' : '1'}x MULTIPLIER
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Stat Row 3: SIZE POTENTIAL */}
           <View className="mb-2">
             <View className="flex-row justify-between mb-1">
               <Text className="font-pixel text-[10px] text-grey-100">SIZE POTENTIAL</Text>
-              <Text className="font-terminal text-xs text-white">{avatar.size}%</Text>
+              <Text className="font-arcade text-[10px] text-white">{avatar.size}%</Text>
             </View>
             <View className="h-[6px] bg-grey-200 rounded overflow-hidden">
               <View className="h-full bg-accent" style={{ width: `${avatar.size}%` }} />
             </View>
           </View>
 
-          {/* Stat Row 3: GLOW RESONANCE */}
+          {/* Stat Row 4: GLOW RESONANCE */}
           <View>
             <View className="flex-row justify-between mb-1">
               <Text className="font-pixel text-[10px] text-grey-100">GLOW RESONANCE</Text>
-              <Text className="font-terminal text-xs text-white">{avatar.glow}%</Text>
+              <Text className="font-arcade text-[10px] text-white">{avatar.glow}%</Text>
             </View>
             <View className="h-[6px] bg-grey-200 rounded overflow-hidden">
               <View className="h-full bg-reward" style={{ width: `${avatar.glow}%` }} />

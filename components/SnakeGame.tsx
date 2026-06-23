@@ -7,9 +7,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { AVATARS } from '../constants/config';
 import RetroCrtEffects from './auth/RetroCrtEffects';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Confetti from './Confetti';
 
 const GRID_SIZE = 20;
-const INITIAL_SPEED = 170;
+// Speed engine: maps avatar speed stat (45–75%) to game tick interval in ms.
+// Higher speed stat → lower interval → faster snake → harder gameplay.
+const getTickInterval = (speedStat: number): number => {
+  const MAX_INTERVAL = 175; // slowest (easiest)
+  const MIN_INTERVAL = 110; // fastest (hardest)
+  return Math.round(MAX_INTERVAL - (speedStat / 100) * (MAX_INTERVAL - MIN_INTERVAL));
+};
+
+// Score multiplier: rewards players who pick harder (faster) avatars.
+// Each food pickup grants 5 * multiplier points.
+const getScoreMultiplier = (speedStat: number): number => {
+  if (speedStat >= 70) return 4;  // GOLDEN COBRA  (75) – hardest
+  if (speedStat >= 60) return 3;  // LIME PYTHON   (65)
+  if (speedStat >= 50) return 2;  // MAGENTA MAMBA (55)
+  return 1;                        // CYAN VIPER    (45) – easiest
+};
 
 const getThemeColors = (color: string) => {
   switch (color) {
@@ -71,6 +87,8 @@ interface Point {
   y: number;
 }
 
+const getSnakeHeadEmoji = () => '👾';
+
 export default function SnakeGame({
   gamesPlayedInCurrentHour,
   refillCountdown,
@@ -100,6 +118,7 @@ export default function SnakeGame({
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [showShareModal, setShowShareModal] = useState<boolean>(false);
+  const [confettiActive, setConfettiActive] = useState<boolean>(false);
 
   const [snake, setSnake] = useState<Point[]>([{ x: 10, y: 10 }]);
   const [food, setFood] = useState<Point>({ x: 15, y: 15 });
@@ -112,9 +131,10 @@ export default function SnakeGame({
   const setStoreHighScore = useAppStore((state) => state.setHighScore);
   const avatarName = useAppStore((state) => state.avatarName);
   const username = useAppStore((state) => state.username);
-  const speed = INITIAL_SPEED;
   
   const avatar = AVATARS.find(a => a.name === avatarName) || AVATARS[0];
+  const speed = getTickInterval(avatar.speed);
+  const scoreMultiplier = getScoreMultiplier(avatar.speed);
 
   const theme = getThemeColors(avatar.color);
 
@@ -181,6 +201,12 @@ export default function SnakeGame({
         
         if (result.isValid) {
           setShowShareModal(true);
+          if (finalScore > 0) {
+            setConfettiActive(true);
+            setTimeout(() => {
+              setConfettiActive(false);
+            }, 5000);
+          }
         }
       }
     } catch (error) {
@@ -188,7 +214,7 @@ export default function SnakeGame({
     } finally {
       setIsValidating(false);
     }
-  }, [submitGameScore, highScore, setStoreHighScore]);
+  }, [submitGameScore, highScore, setStoreHighScore, setConfettiActive]);
 
   // Game loop tick function
   const gameTick = useCallback(() => {
@@ -235,7 +261,7 @@ export default function SnakeGame({
       // Food collision
       if (newHead.x === food.x && newHead.y === food.y) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setScore(prevScore => prevScore + 10);
+        setScore(prevScore => prevScore + (5 * scoreMultiplier));
         setFood(generateFood(newSnake));
       } else {
         newSnake.pop();
@@ -351,7 +377,7 @@ export default function SnakeGame({
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <SafeAreaView style={{ flex: 1, marginTop: 8}}>
+      <SafeAreaView style={{ flex: 1 }}>
         <View className="flex-1 w-full px-4 py-2 items-center justify-between">
         {/* Top Console Branding, Status & Stats */}
         <View className="items-center w-full">
@@ -394,7 +420,7 @@ export default function SnakeGame({
         
         {/* Connection status line / subtitle */}
         <Text className="font-terminal text-[14px] text-center mb-2" style={{ color: theme.textMuted }}>
-          {avatarName} Active // Consume 1 life to record score
+          {avatarName} Active // {scoreMultiplier}x SCORE MULTIPLIER
         </Text>
 
         {/* Score and Stats Display */}
@@ -469,7 +495,7 @@ export default function SnakeGame({
                     <Text className="font-pixel_regular text-xs text-center mb-2" style={{ color: theme.textMuted }}>
                       Please wait for the lives refill
                     </Text>
-                    <Text className="font-terminal text-3xl text-warning">
+                    <Text className="font-arcade text-xl text-warning">
                       {refillCountdown}
                     </Text>
                   </>
@@ -481,7 +507,7 @@ export default function SnakeGame({
                     <Text className="font-pixel_regular text-xs text-center mb-2" style={{ color: theme.textMuted }}>
                       Please wait for the hourly reset
                     </Text>
-                    <Text className="font-terminal text-3xl text-warning">
+                    <Text className="font-arcade text-xl text-warning">
                       {hourlyCountdown}
                     </Text>
                   </>
@@ -520,8 +546,8 @@ export default function SnakeGame({
                 <Text className="font-arcade text-sm text-destructive mb-2">
                   GAME OVER
                 </Text>
-                <Text className="font-pixel_bold text-base text-accent mb-4">
-                  Score: {score}
+                <Text className="font-arcade text-xs text-accent mb-1">
+                  SCORE: {score}
                 </Text>
                 
                 {isValidating ? (
@@ -597,14 +623,28 @@ export default function SnakeGame({
                     width: segmentSize,
                     height: segmentSize,
                     borderRadius: index === 0 ? 3 : 1,
-                    backgroundColor: avatar.color,
+                    backgroundColor: index === 0 ? 'transparent' : avatar.color,
                     opacity: index === 0 ? 1 : 0.8,
                     shadowColor: avatar.color,
                     shadowOffset: { width: 0, height: 0 },
                     shadowOpacity: glowOpacity,
                     shadowRadius: glowRadius,
+                    justifyContent: 'center',
+                    alignItems: 'center',
                   }}
-                />
+                >
+                  {index === 0 && (
+                    <Text 
+                      style={{ 
+                        fontSize: segmentSize * 1.5, 
+                        lineHeight: segmentSize * 1.6, 
+                        textAlign: 'center' 
+                      }}
+                    >
+                      {getSnakeHeadEmoji()}
+                    </Text>
+                  )}
+                </View>
               );
             })}
 
@@ -795,6 +835,7 @@ export default function SnakeGame({
         </View>
       </Modal>
         </View>
+        <Confetti active={confettiActive} />
       </SafeAreaView>
     </View>
   );

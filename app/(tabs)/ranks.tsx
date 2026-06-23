@@ -11,6 +11,7 @@ const BADGE_IMAGES = {
   THIRD_PLACE: require('../../assets/images/badge_third_place.png'),
   TOP_5: require('../../assets/images/badge_top_5.png'),
   TOP_10: require('../../assets/images/badge_top_10.png'),
+  GOAT: require('../../assets/images/badge_goat.png'),
 };
 
 const renderMiniBadges = (badges: any[] | undefined): React.JSX.Element | null => {
@@ -22,7 +23,7 @@ const renderMiniBadges = (badges: any[] | undefined): React.JSX.Element | null =
     counts[b.badgeType] = (counts[b.badgeType] || 0) + 1;
   });
 
-  const badgeOrder = ['FIRST_PLACE', 'SECOND_PLACE', 'THIRD_PLACE', 'TOP_5', 'TOP_10'] as const;
+  const badgeOrder = ['GOAT', 'FIRST_PLACE', 'SECOND_PLACE', 'THIRD_PLACE', 'TOP_5', 'TOP_10'] as const;
 
   return (
     <View className="flex-row items-center gap-1 ml-1.5 flex-wrap">
@@ -38,7 +39,7 @@ const renderMiniBadges = (badges: any[] | undefined): React.JSX.Element | null =
               resizeMode="contain"
             />
             {count > 1 && (
-              <Text className="font-terminal text-[6px] text-grey-100 ml-0.5" style={{ fontSize: 6.5 }}>
+              <Text className="font-arcade text-[6px] text-grey-100 ml-0.5" style={{ fontSize: 6.5 }}>
                 x{count}
               </Text>
             )}
@@ -78,7 +79,7 @@ export default function RanksScreen(): React.JSX.Element {
     switch (index) {
       case 0: // 1st Place - Gold
         return {
-          rankText: 'text-reward font-pixel_bold',
+          rankText: 'text-reward font-arcade text-[10px]',
           scoreText: 'text-reward font-arcade text-[11px]',
           bgClass: 'bg-reward/5 border-l-4 border-reward',
           iconName: 'trophy' as const,
@@ -86,24 +87,24 @@ export default function RanksScreen(): React.JSX.Element {
         };
       case 1: // 2nd Place - Cyan / Silver
         return {
-          rankText: 'text-secondary font-pixel_bold',
-          scoreText: 'text-secondary font-pixel_bold text-[12px]',
+          rankText: 'text-secondary font-arcade text-[10px]',
+          scoreText: 'text-secondary font-arcade text-[11px]',
           bgClass: 'bg-secondary/5 border-l-4 border-secondary',
           iconName: 'medal' as const,
           iconColor: '#00FFFF',
         };
       case 2: // 3rd Place - Bronze / Green
         return {
-          rankText: 'text-accent font-pixel_bold',
-          scoreText: 'text-accent font-pixel_bold text-[12px]',
+          rankText: 'text-accent font-arcade text-[10px]',
+          scoreText: 'text-accent font-arcade text-[11px]',
           bgClass: 'bg-accent/5 border-l-4 border-accent',
           iconName: 'ribbon' as const,
           iconColor: '#00FF00',
         };
       default:
         return {
-          rankText: 'text-grey-100 font-pixel',
-          scoreText: 'text-white font-pixel text-[12px]',
+          rankText: 'text-grey-100 font-arcade text-[10px]',
+          scoreText: 'text-white font-arcade text-[11px]',
           bgClass: 'border-l-4 border-transparent',
           iconName: null,
           iconColor: '#C0C0C0',
@@ -163,7 +164,7 @@ export default function RanksScreen(): React.JSX.Element {
         ) : (
           <>
             <Text className="w-[20%] font-arcade text-[8px] text-grey text-right">HIGH</Text>
-            <Text className="w-[20%] font-arcade text-[8px] text-grey text-right">GMS</Text>
+            <Text className="w-[20%] font-arcade text-[8px] text-grey text-right">GP</Text>
           </>
         )}
       </View>
@@ -233,11 +234,14 @@ export default function RanksScreen(): React.JSX.Element {
                     </Text>
                     {/* Mini Stats: Games Count and Referral Points */}
                     <View className="w-[20%] items-end justify-center">
-                      <Text className="font-terminal text-[11px] text-grey-100">
-                        {item.gamesCount}g
+                      <Text className="text-grey-100 text-[11px]">
+                        <Text className="font-arcade text-[8px]">{item.gamesCount}</Text>
+                        <Text className="font-terminal text-[11px]">g</Text>
                       </Text>
-                      <Text className="font-terminal text-[9px] text-accent mt-0.5">
-                        +{item.referralPoints} pts
+                      <Text className="text-accent text-[9px] mt-0.5">
+                        <Text className="font-terminal text-[9px]">+</Text>
+                        <Text className="font-arcade text-[7px]">{item.referralPoints}</Text>
+                        <Text className="font-terminal text-[9px]"> pts</Text>
                       </Text>
                     </View>
                   </>
@@ -249,7 +253,7 @@ export default function RanksScreen(): React.JSX.Element {
                       {item.highScore}
                     </Text>
                     {/* Total games played */}
-                    <Text className="w-[20%] font-terminal text-[11px] text-grey-100 text-right">
+                    <Text className="w-[20%] font-arcade text-[10px] text-grey-100 text-right">
                       {item.totalGames}
                     </Text>
                   </>

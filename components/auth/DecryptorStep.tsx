@@ -137,7 +137,13 @@ export default function DecryptorStep({
             <Text 
               className="font-pixel_semibold text-xs text-warning tracking-widest underline decoration-warning"
             >
-              {resendCountdown > 0 ? `RESEND KEY IN ${resendCountdown}S` : "RESEND ACCESS KEY"}
+              {resendCountdown > 0 ? (
+                <Text>
+                  RESEND KEY IN <Text className="font-arcade text-[9px]">{resendCountdown}</Text>S
+                </Text>
+              ) : (
+                "RESEND ACCESS KEY"
+              )}
             </Text>
           </TouchableOpacity>
         )}

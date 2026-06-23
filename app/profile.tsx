@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Image } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { dynamicClient } from '../client';
 import { AVATARS } from '../constants/config';
 import RetroCrtEffects from '../components/auth/RetroCrtEffects';
 import { usePlayerProfile } from '../hooks/usePlayerProfile';
+import Confetti from '../components/Confetti';
 
 const BADGE_IMAGES = {
   FIRST_PLACE: require('../assets/images/badge_first_place.png'),
@@ -19,6 +20,7 @@ const BADGE_IMAGES = {
   THIRD_PLACE: require('../assets/images/badge_third_place.png'),
   TOP_5: require('../assets/images/badge_top_5.png'),
   TOP_10: require('../assets/images/badge_top_10.png'),
+  GOAT: require('../assets/images/badge_goat.png'),
 };
 
 export default function ProfileScreen(): React.JSX.Element {
@@ -40,6 +42,20 @@ export default function ProfileScreen(): React.JSX.Element {
 
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
+  const [showConfetti, setShowConfetti] = useState<boolean>(false);
+
+  // Trigger confetti when profile loaded and player is GOAT
+  useEffect(() => {
+    if (profile?.badges?.some((b: any) => b.badgeType === 'GOAT')) {
+      setShowConfetti(true);
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+      }, 5000); // 5 seconds of confetti
+      return () => clearTimeout(timer);
+    } else {
+      setShowConfetti(false);
+    }
+  }, [profile?.badges]);
 
   const selectedAvatarName = useAppStore((state) => state.avatarName);
   const setAvatar = useAppStore((state) => state.setAvatar);
@@ -55,13 +71,12 @@ export default function ProfileScreen(): React.JSX.Element {
   const handleCopyReferral = async () => {
     if (!profile?.referralCode) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const refLink = `https://play3310.xyz/ref/${profile.referralCode}`;
-    await Clipboard.setStringAsync(refLink);
+    await Clipboard.setStringAsync(profile.referralCode);
     setCopiedLink(true);
     Toast.show({
       type: 'success',
-      text1: 'LINK COPIED',
-      text2: 'Referral link copied to clipboard.',
+      text1: 'CODE COPIED',
+      text2: 'Referral code copied to clipboard.',
     });
     setTimeout(() => setCopiedLink(false), 2000);
   };
@@ -113,7 +128,7 @@ export default function ProfileScreen(): React.JSX.Element {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27', marginTop: 8 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0E27' }}>
         <View className="flex-1 w-full px-4 pt-2 items-center justify-start gap-4">
           {/* Top Area: Branding & Title */}
           <View className="flex-row items-center justify-between w-full mb-1">
@@ -186,7 +201,7 @@ export default function ProfileScreen(): React.JSX.Element {
     );
   }
 
-  const referralLink = profile ? `https://play3310.xyz/ref/${profile.referralCode}` : '';
+
 
   // Group player's badges by type for the gallery grid
   const badgeCounts = {
@@ -195,6 +210,7 @@ export default function ProfileScreen(): React.JSX.Element {
     THIRD_PLACE: 0,
     TOP_5: 0,
     TOP_10: 0,
+    GOAT: 0,
   };
 
   if (profile?.badges) {
@@ -245,6 +261,14 @@ export default function ProfileScreen(): React.JSX.Element {
       color: '#FF00FF', // Neon Magenta
       description: 'Finished in the Top 10 of the weekly standings.',
       count: badgeCounts.TOP_10,
+    },
+    {
+      type: 'GOAT' as const,
+      title: 'G.O.A.T.',
+      icon: 'star' as const,
+      color: '#FF0055', // Neon Crimson/Rose
+      description: 'Holds the record for the most Weekly Champion wins.',
+      count: badgeCounts.GOAT,
     },
   ];
 
@@ -389,33 +413,53 @@ export default function ProfileScreen(): React.JSX.Element {
                 SYS ACTIVE: {activeAvatar.name}
               </Text>
               
-              {/* Stat Row 1: SPEED */}
+              {/* Stat Row 1: SPEED ENGINE — primary strategic stat */}
               <View className="mb-1">
                 <View className="flex-row justify-between mb-0.5">
                   <Text className="font-pixel text-[7px] text-grey-100">SPEED ENGINE</Text>
-                  <Text className="font-terminal text-[9px] text-white">{activeAvatar.speed}%</Text>
+                  <Text className="font-arcade text-[8px] text-white">{activeAvatar.speed}%</Text>
                 </View>
                 <View className="h-[3px] bg-grey-200 rounded overflow-hidden">
                   <View className="h-full bg-secondary" style={{ width: `${activeAvatar.speed}%` }} />
                 </View>
               </View>
 
-              {/* Stat Row 2: TAIL CAPACITY */}
+              {/* Stat Row 2: SCORE PER FOOD — derived from speed multiplier */}
+              <View className="mb-1">
+                <View className="flex-row justify-between mb-0.5">
+                  <Text className="font-pixel text-[7px] text-grey-100">SCORE PER FOOD</Text>
+                  <Text className="font-arcade text-[8px]" style={{ color: activeAvatar.color }}>
+                    {5 * (activeAvatar.speed >= 70 ? 4 : activeAvatar.speed >= 60 ? 3 : activeAvatar.speed >= 50 ? 2 : 1)} PTS
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-1 mt-0.5">
+                  <View 
+                    className="px-1.5 py-0.5 rounded"
+                    style={{ backgroundColor: `${activeAvatar.color}20`, borderWidth: 1, borderColor: `${activeAvatar.color}40` }}
+                  >
+                    <Text className="font-arcade text-[7px]" style={{ color: activeAvatar.color }}>
+                      {activeAvatar.speed >= 70 ? '4' : activeAvatar.speed >= 60 ? '3' : activeAvatar.speed >= 50 ? '2' : '1'}x MULTIPLIER
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Stat Row 3: SIZE POTENTIAL */}
               <View className="mb-1">
                 <View className="flex-row justify-between mb-0.5">
                   <Text className="font-pixel text-[7px] text-grey-100">SIZE POTENTIAL</Text>
-                  <Text className="font-terminal text-[9px] text-white">{activeAvatar.size}%</Text>
+                  <Text className="font-arcade text-[8px] text-white">{activeAvatar.size}%</Text>
                 </View>
                 <View className="h-[3px] bg-grey-200 rounded overflow-hidden">
                   <View className="h-full bg-accent" style={{ width: `${activeAvatar.size}%` }} />
                 </View>
               </View>
 
-              {/* Stat Row 3: GLOW RESONANCE */}
+              {/* Stat Row 4: GLOW RESONANCE */}
               <View>
                 <View className="flex-row justify-between mb-0.5">
                   <Text className="font-pixel text-[7px] text-grey-100">GLOW RESONANCE</Text>
-                  <Text className="font-terminal text-[9px] text-white">{activeAvatar.glow}%</Text>
+                  <Text className="font-arcade text-[8px] text-white">{activeAvatar.glow}%</Text>
                 </View>
                 <View className="h-[3px] bg-grey-200 rounded overflow-hidden">
                   <View className="h-full bg-reward" style={{ width: `${activeAvatar.glow}%` }} />
@@ -485,7 +529,7 @@ export default function ProfileScreen(): React.JSX.Element {
                           shadowOffset: { width: 0, height: 1 },
                         }}
                       >
-                        <Text className="font-pixel text-[6px] text-white text-center leading-[6px] font-bold">
+                        <Text className="font-arcade text-[6px] text-white text-center leading-[6px]">
                           {item.count}
                         </Text>
                       </View>
@@ -522,9 +566,13 @@ export default function ProfileScreen(): React.JSX.Element {
           {/* Referral Copy Row */}
           <View className="w-full mb-2">
             <View className="flex-row justify-between items-center mb-1 px-1">
-              <Text className="font-pixel_bold text-[9px] text-secondary uppercase">Referral Link</Text>
+              <Text className="font-pixel_bold text-[9px] text-secondary uppercase">Referral Code</Text>
               <View className="bg-accent/20 px-2 py-0.5 rounded">
-                <Text className="font-terminal text-[9px] text-accent">+{profile?.referralPoints || 0} pts</Text>
+                <Text className="text-accent text-[9px]">
+                  <Text className="font-terminal text-[9px]">+</Text>
+                  <Text className="font-arcade text-[8px]">{profile?.referralPoints || 0}</Text>
+                  <Text className="font-terminal text-[9px]"> pts</Text>
+                </Text>
               </View>
             </View>
             <View 
@@ -532,11 +580,11 @@ export default function ProfileScreen(): React.JSX.Element {
               style={{ borderColor: `${activeAvatar.color}30` }}
             >
               <Text 
-                className="flex-1 font-terminal text-xs ml-1 mr-2" 
+                className="flex-1 font-arcade text-xs ml-2 mr-2 uppercase tracking-widest" 
                 numberOfLines={1}
                 style={{ color: activeAvatar.color }}
               >
-                {referralLink}
+                {profile?.referralCode || 'N/A'}
               </Text>
               <TouchableOpacity
                 onPress={handleCopyReferral}
@@ -577,6 +625,7 @@ export default function ProfileScreen(): React.JSX.Element {
         </View>
       </View>
       </ScrollView>
+      <Confetti active={showConfetti} />
     </SafeAreaView>
   );
 }
