@@ -429,7 +429,7 @@ export default function ProfileScreen(): React.JSX.Element {
                 <View className="flex-row justify-between mb-0.5">
                   <Text className="font-pixel text-[7px] text-grey-100">SCORE PER FOOD</Text>
                   <Text className="font-arcade text-[8px]" style={{ color: activeAvatar.color }}>
-                    {5 * (activeAvatar.speed >= 70 ? 4 : activeAvatar.speed >= 60 ? 3 : activeAvatar.speed >= 50 ? 2 : 1)} PTS
+                    {5 * (activeAvatar.speed >= 50 ? 4 : activeAvatar.speed >= 40 ? 3 : activeAvatar.speed >= 30 ? 2 : 1)} PTS
                   </Text>
                 </View>
                 <View className="flex-row items-center gap-1 mt-0.5">
@@ -438,7 +438,7 @@ export default function ProfileScreen(): React.JSX.Element {
                     style={{ backgroundColor: `${activeAvatar.color}20`, borderWidth: 1, borderColor: `${activeAvatar.color}40` }}
                   >
                     <Text className="font-arcade text-[7px]" style={{ color: activeAvatar.color }}>
-                      {activeAvatar.speed >= 70 ? '4' : activeAvatar.speed >= 60 ? '3' : activeAvatar.speed >= 50 ? '2' : '1'}x MULTIPLIER
+                      {activeAvatar.speed >= 50 ? '4' : activeAvatar.speed >= 40 ? '3' : activeAvatar.speed >= 30 ? '2' : '1'}x MULTIPLIER
                     </Text>
                   </View>
                 </View>
