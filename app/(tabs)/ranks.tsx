@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useLeaderboard } from '../../hooks/useLeaderboard';
+import { useAppStore } from '../../store/useAppStore';
 
 const BADGE_IMAGES = {
   FIRST_PLACE: require('../../assets/images/badge_first_place.png'),
@@ -52,6 +53,7 @@ const renderMiniBadges = (badges: any[] | undefined): React.JSX.Element | null =
 
 export default function RanksScreen(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<'weekly' | 'allTime'>('weekly');
+  const currentUsername = useAppStore((state) => state.username);
 
   // Fetch both leaderboards in parallel for instant tab switching
   const weeklyQuery = useLeaderboard('weekly');
@@ -200,9 +202,15 @@ export default function RanksScreen(): React.JSX.Element {
           }
           renderItem={({ item, index }) => {
             const config = getRankStyles(index);
+            const isCurrentUser = item.username === currentUsername;
             return (
               <View
                 className={`flex-row items-center border-b border-grey-200/10 py-3 px-4 ${config.bgClass}`}
+                style={isCurrentUser ? {
+                  backgroundColor: 'rgba(0, 255, 255, 0.08)',
+                  borderColor: '#00FFFF',
+                  borderLeftWidth: 4,
+                } : undefined}
               >
                 {/* Rank Number */}
                 <View className="w-[15%] flex-row items-center">
@@ -219,8 +227,12 @@ export default function RanksScreen(): React.JSX.Element {
 
                 {/* Username / Address and Badges */}
                 <View className="w-[45%] flex-row items-center">
-                  <Text className="font-pixel_semibold text-xs text-white" numberOfLines={1} style={{ maxWidth: '65%' }}>
-                    {item.username}
+                  <Text 
+                    className={`font-pixel_semibold text-xs ${isCurrentUser ? 'text-secondary font-pixel_bold' : 'text-white'}`} 
+                    numberOfLines={1} 
+                    style={{ maxWidth: '65%' }}
+                  >
+                    {isCurrentUser ? 'You' : item.username}
                   </Text>
                   {renderMiniBadges(item.badges)}
                 </View>

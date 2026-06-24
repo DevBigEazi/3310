@@ -74,7 +74,7 @@ interface SnakeGameProps {
   isHourLimitReached: boolean;
   isLoading: boolean;
   weeklyScore: number;
-  startGameAttempt: () => Promise<string | null>;
+  startGameAttempt: (gameMode: 'classic' | 'wrap') => Promise<string | null>;
   submitGameScore: (score: number, gameMode: 'classic' | 'wrap') => Promise<{ isValid: boolean; updatedScore: number } | null>;
   pendingScore: { gameSessionId: string; score: number; gameMode?: 'classic' | 'wrap' } | null;
   isSyncingPending: boolean;
@@ -90,6 +90,7 @@ interface Point {
 const getSnakeHeadEmoji = () => '👾';
 
 export default function SnakeGame({
+  lives,
   gamesPlayedInCurrentHour,
   refillCountdown,
   hourlyCountdown,
@@ -136,6 +137,8 @@ export default function SnakeGame({
   const avatar = AVATARS.find(a => a.name === avatarName) || AVATARS[0];
   const speed = getTickInterval(avatar.speed);
   const scoreMultiplier = getScoreMultiplier(avatar.speed);
+  const hourlyLimit = gameType === 'wrap' ? 3 : 5;
+  const activeHourLimitReached = gamesPlayedInCurrentHour >= hourlyLimit;
 
   const theme = getThemeColors(avatar.color);
 
@@ -162,12 +165,12 @@ export default function SnakeGame({
   const handleStartGame = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    if (isOutOfLives || isHourLimitReached) {
+    if (isOutOfLives || activeHourLimitReached) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
-    const sessionId = await startGameAttempt();
+    const sessionId = await startGameAttempt(gameType);
     if (!sessionId) return;
 
     // Reset board states
@@ -446,8 +449,8 @@ export default function SnakeGame({
           </View>
           <View>
             <Text className="font-pixel_regular text-[9px] mb-0.5" style={{ color: avatar.color }}>GAMES/HOUR</Text>
-            <Text className="font-arcade text-lg" style={{ color: isHourLimitReached ? '#FF0000' : avatar.color }}>
-              {gamesPlayedInCurrentHour}/5
+            <Text className="font-arcade text-lg" style={{ color: activeHourLimitReached ? '#FF0000' : avatar.color }}>
+              {Math.min(gamesPlayedInCurrentHour, hourlyLimit)}/{hourlyLimit}
             </Text>
           </View>
         </View>
@@ -510,7 +513,7 @@ export default function SnakeGame({
                       {refillCountdown}
                     </Text>
                   </>
-                ) : isHourLimitReached ? (
+                ) : gamesPlayedInCurrentHour >= 5 ? (
                   <>
                     <Text className="font-arcade leading-7 text-sm text-destructive text-center mb-3">
                       Hourly Limit Reached
@@ -574,37 +577,51 @@ export default function SnakeGame({
                         : 'SNAKE CAN PASS THROUGH WALLS. REDUCED MULTIPLIER (50% POINTS).'}
                     </Text>
 
-                    <TouchableOpacity
-                      onPress={handleStartGame}
-                      disabled={isSessionLoading}
-                      style={{
-                        backgroundColor: isSessionLoading ? `${avatar.color}80` : avatar.color,
-                        borderColor: avatar.color,
-                        borderWidth: 1,
-                        paddingVertical: 10,
-                        paddingHorizontal: 32,
-                        borderRadius: 8,
-                        minWidth: 180,
-                        height: 42,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        flexDirection: 'row',
-                        opacity: isSessionLoading ? 0.8 : 1,
-                      }}
-                    >
-                      {isSessionLoading ? (
-                        <>
-                          <ActivityIndicator size="small" color={theme.bg} style={{ marginRight: 8 }} />
-                          <Text className="font-pixel_bold text-xs" style={{ color: theme.bg }}>
-                            LOADING...
-                          </Text>
-                        </>
-                      ) : (
-                        <Text className="font-pixel_bold text-xs" style={{ color: theme.bg }}>
-                          START GAME
+                    {activeHourLimitReached ? (
+                      <View className="items-center w-full mt-1.5">
+                        <Text className="font-arcade text-[10px] text-destructive mb-2 uppercase">
+                          LIMIT REACHED
                         </Text>
-                      )}
-                    </TouchableOpacity>
+                        <Text className="font-pixel_regular text-[9px] text-center mb-2" style={{ color: theme.textMuted }}>
+                          Wait for reset to play Borderless
+                        </Text>
+                        <Text className="font-arcade text-base text-warning mb-2">
+                          {hourlyCountdown || '00:00'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={handleStartGame}
+                        disabled={isSessionLoading}
+                        style={{
+                          backgroundColor: isSessionLoading ? `${avatar.color}80` : avatar.color,
+                          borderColor: avatar.color,
+                          borderWidth: 1,
+                          paddingVertical: 10,
+                          paddingHorizontal: 32,
+                          borderRadius: 8,
+                          minWidth: 180,
+                          height: 42,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          flexDirection: 'row',
+                          opacity: isSessionLoading ? 0.8 : 1,
+                        }}
+                      >
+                        {isSessionLoading ? (
+                          <>
+                            <ActivityIndicator size="small" color={theme.bg} style={{ marginRight: 8 }} />
+                            <Text className="font-pixel_bold text-xs" style={{ color: theme.bg }}>
+                              LOADING...
+                            </Text>
+                          </>
+                        ) : (
+                          <Text className="font-pixel_bold text-xs" style={{ color: theme.bg }}>
+                            START GAME
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
                   </>
                 )}
               </View>

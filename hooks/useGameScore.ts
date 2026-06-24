@@ -195,12 +195,13 @@ export const useGameScore = () => {
   }, [queryClient]);
 
   // Mutations
-  const startMutation = useMutation<string | null, Error, void>({
-    mutationFn: async (): Promise<string | null> => {
+  const startMutation = useMutation<string | null, Error, 'classic' | 'wrap'>({
+    mutationFn: async (gameMode): Promise<string | null> => {
       const headers = await getAuthHeaders();
       const response = await fetchWithTimeout(`${BACKEND_URL}/api/scores/start`, {
         method: 'POST',
         headers,
+        body: JSON.stringify({ gameMode }),
       });
 
       if (!response.ok) {
@@ -312,7 +313,7 @@ export const useGameScore = () => {
   });
 
   // Start a new game session wrapper
-  const startGameAttempt = useCallback(async (): Promise<string | null> => {
+  const startGameAttempt = useCallback(async (gameMode?: 'classic' | 'wrap'): Promise<string | null> => {
     try {
       const currentPending = useAppStore.getState().pendingScore;
       if (currentPending) {
@@ -323,7 +324,7 @@ export const useGameScore = () => {
         });
         return null;
       }
-      return await startMutation.mutateAsync();
+      return await startMutation.mutateAsync(gameMode || 'classic');
     } catch (error) {
       console.error('[useGameScore] Error starting game:', error);
       return null;
@@ -370,7 +371,7 @@ export const useGameScore = () => {
       }
 
       // 2. Hourly limit countdown (resets 1 hour after firstGameInHour)
-      if (gamesPlayedInCurrentHour >= 5 && firstGameInHour) {
+      if (gamesPlayedInCurrentHour >= 3 && firstGameInHour) {
         const firstGameTime = new Date(firstGameInHour).getTime();
         const limitExpiryTime = firstGameTime + 60 * 60 * 1000;
         const diffMs = limitExpiryTime - now;
