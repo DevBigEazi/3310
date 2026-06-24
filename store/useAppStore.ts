@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface PendingScore {
   gameSessionId: string;
   score: number;
+  gameMode?: 'classic' | 'wrap';
 }
 
 interface AppState {

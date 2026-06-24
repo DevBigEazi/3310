@@ -75,8 +75,8 @@ interface SnakeGameProps {
   isLoading: boolean;
   weeklyScore: number;
   startGameAttempt: () => Promise<string | null>;
-  submitGameScore: (score: number) => Promise<{ isValid: boolean; updatedScore: number } | null>;
-  pendingScore: { gameSessionId: string; score: number } | null;
+  submitGameScore: (score: number, gameMode: 'classic' | 'wrap') => Promise<{ isValid: boolean; updatedScore: number } | null>;
+  pendingScore: { gameSessionId: string; score: number; gameMode?: 'classic' | 'wrap' } | null;
   isSyncingPending: boolean;
   syncPendingScore: () => Promise<void>;
 }
@@ -125,6 +125,7 @@ export default function SnakeGame({
   const [direction, setDirection] = useState<Direction>('RIGHT');
   const [score, setScore] = useState<number>(0);
   const [controlMode, setControlMode] = useState<'buttons' | 'swipe'>('buttons');
+  const [gameType, setGameType] = useState<'classic' | 'wrap'>('classic');
   
   const router = useRouter();
   const highScore = useAppStore((state) => state.highScore);
@@ -191,7 +192,7 @@ export default function SnakeGame({
     setIsValidating(true);
 
     try {
-      const result = await submitGameScore(finalScore);
+      const result = await submitGameScore(finalScore, gameType);
       if (result) {
         // Update cumulative all-time score locally
         if (result.isValid) {
@@ -212,7 +213,7 @@ export default function SnakeGame({
     } finally {
       setIsValidating(false);
     }
-  }, [submitGameScore, highScore, setStoreHighScore, setConfettiActive]);
+  }, [submitGameScore, highScore, setStoreHighScore, setConfettiActive, gameType]);
 
   // Game loop tick function
   const gameTick = useCallback(() => {
@@ -239,11 +240,20 @@ export default function SnakeGame({
       }
 
       // Border or self collision checks
-      const isWallCollision = 
-        newHead.x < 0 || 
-        newHead.x >= GRID_SIZE || 
-        newHead.y < 0 || 
-        newHead.y >= GRID_SIZE;
+      let isWallCollision = false;
+      if (gameType === 'wrap') {
+        if (newHead.x < 0) newHead.x = GRID_SIZE - 1;
+        else if (newHead.x >= GRID_SIZE) newHead.x = 0;
+        
+        if (newHead.y < 0) newHead.y = GRID_SIZE - 1;
+        else if (newHead.y >= GRID_SIZE) newHead.y = 0;
+      } else {
+        isWallCollision = 
+          newHead.x < 0 || 
+          newHead.x >= GRID_SIZE || 
+          newHead.y < 0 || 
+          newHead.y >= GRID_SIZE;
+      }
       
       const isSelfCollision = prevSnake.some(
         (segment, idx) => idx > 0 && segment.x === newHead.x && segment.y === newHead.y
@@ -259,7 +269,10 @@ export default function SnakeGame({
       // Food collision
       if (newHead.x === food.x && newHead.y === food.y) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setScore(prevScore => prevScore + (5 * scoreMultiplier));
+        const pointsAdded = gameType === 'wrap'
+          ? Math.max(1, Math.floor(5 * scoreMultiplier * 0.5))
+          : 5 * scoreMultiplier;
+        setScore(prevScore => prevScore + pointsAdded);
         setFood(generateFood(newSnake));
       } else {
         newSnake.pop();
@@ -267,7 +280,7 @@ export default function SnakeGame({
 
       return newSnake;
     });
-  }, [food, score, generateFood, handleGameOver]);
+  }, [food, score, generateFood, handleGameOver, gameType, scoreMultiplier]);
 
   // Manage Game interval timer
   useEffect(() => {
@@ -417,8 +430,8 @@ export default function SnakeGame({
         </TouchableOpacity>
         
         {/* Connection status line / subtitle */}
-        <Text className="font-terminal text-[14px] text-center mb-2" style={{ color: theme.textMuted }}>
-          {avatarName} Active // {scoreMultiplier}x SCORE MULTIPLIER
+        <Text className="font-terminal text-[13px] text-center mb-2" style={{ color: theme.textMuted }}>
+          {avatarName} Active // {gameType === 'wrap' ? 'WRAP-AROUND (0.5x PTS)' : 'CLASSIC'} // {gameType === 'wrap' ? Math.max(1, Math.floor(5 * scoreMultiplier * 0.5)) : 5 * scoreMultiplier} PTS/FOOD
         </Text>
 
         {/* Score and Stats Display */}
@@ -511,19 +524,83 @@ export default function SnakeGame({
                   </>
                 ) : (
                   <>
-                    <Text className="font-arcade text-sm mb-4" style={{ color: avatar.color }}>
-                      Ready to play?
+                    <Text className="font-arcade text-xs mb-2" style={{ color: avatar.color }}>
+                      SELECT GAME MODE
                     </Text>
+
+                    <View className="flex-row gap-2 mb-3 w-[90%] justify-center">
+                      <TouchableOpacity
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setGameType('classic');
+                        }}
+                        className="flex-1 py-2 rounded-lg border items-center justify-center"
+                        style={{
+                          backgroundColor: gameType === 'classic' ? avatar.color : `${avatar.color}15`,
+                          borderColor: avatar.color,
+                        }}
+                      >
+                        <Text 
+                          className="font-pixel_bold text-[10px]" 
+                          style={{ color: gameType === 'classic' ? theme.bg : avatar.color }}
+                        >
+                          CLASSIC
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setGameType('wrap');
+                        }}
+                        className="flex-1 py-2 rounded-lg border items-center justify-center"
+                        style={{
+                          backgroundColor: gameType === 'wrap' ? avatar.color : `${avatar.color}15`,
+                          borderColor: avatar.color,
+                        }}
+                      >
+                        <Text 
+                          className="font-pixel_bold text-[10px]" 
+                          style={{ color: gameType === 'wrap' ? theme.bg : avatar.color }}
+                        >
+                          BORDERLESS
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <Text className="font-pixel_regular text-[9px] text-center mb-4 leading-4 px-2" style={{ color: theme.textMuted }}>
+                      {gameType === 'classic'
+                        ? 'WALLS ARE LETHAL. FULL SCORE MULTIPLIER (100% POINTS).'
+                        : 'SNAKE CAN PASS THROUGH WALLS. REDUCED MULTIPLIER (50% POINTS).'}
+                    </Text>
+
                     <TouchableOpacity
                       onPress={handleStartGame}
                       disabled={isSessionLoading}
-                      className="px-6 py-2.5 rounded border"
-                      style={{ backgroundColor: avatar.color, borderColor: avatar.color }}
+                      style={{
+                        backgroundColor: isSessionLoading ? `${avatar.color}80` : avatar.color,
+                        borderColor: avatar.color,
+                        borderWidth: 1,
+                        paddingVertical: 10,
+                        paddingHorizontal: 32,
+                        borderRadius: 8,
+                        minWidth: 180,
+                        height: 42,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        flexDirection: 'row',
+                        opacity: isSessionLoading ? 0.8 : 1,
+                      }}
                     >
                       {isSessionLoading ? (
-                        <ActivityIndicator size="small" color={theme.bg} />
+                        <>
+                          <ActivityIndicator size="small" color={theme.bg} style={{ marginRight: 8 }} />
+                          <Text className="font-pixel_bold text-xs" style={{ color: theme.bg }}>
+                            LOADING...
+                          </Text>
+                        </>
                       ) : (
-                        <Text className="font-pixel_bold text-sm" style={{ color: theme.bg }}>
+                        <Text className="font-pixel_bold text-xs" style={{ color: theme.bg }}>
                           START GAME
                         </Text>
                       )}

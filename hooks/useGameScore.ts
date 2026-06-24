@@ -49,7 +49,7 @@ export const useGameScore = () => {
 
     try {
       setIsSyncingPending(true);
-      const { gameSessionId: storedSessionId, score: storedScore } = currentPending;
+      const { gameSessionId: storedSessionId, score: storedScore, gameMode: storedGameMode } = currentPending;
       const headers = await getAuthHeaders();
       const response = await fetchWithTimeout(`${BACKEND_URL}/api/scores/validate-score`, {
         method: 'POST',
@@ -57,6 +57,7 @@ export const useGameScore = () => {
         body: JSON.stringify({
           gameSessionId: storedSessionId,
           score: storedScore,
+          gameMode: storedGameMode,
         }),
       });
 
@@ -110,7 +111,7 @@ export const useGameScore = () => {
       if (!currentPending) return;
 
       try {
-        const { gameSessionId: storedSessionId, score: storedScore } = currentPending;
+        const { gameSessionId: storedSessionId, score: storedScore, gameMode: storedGameMode } = currentPending;
         const headers = await getAuthHeaders();
         const response = await fetchWithTimeout(`${BACKEND_URL}/api/scores/validate-score`, {
           method: 'POST',
@@ -118,6 +119,7 @@ export const useGameScore = () => {
           body: JSON.stringify({
             gameSessionId: storedSessionId,
             score: storedScore,
+            gameMode: storedGameMode,
           }),
         });
 
@@ -218,9 +220,9 @@ export const useGameScore = () => {
     }
   });
 
-  const submitMutation = useMutation<{ isValid: boolean; updatedScore: number } | null, Error, number>({
+  const submitMutation = useMutation<{ isValid: boolean; updatedScore: number } | null, Error, { score: number; gameMode: 'classic' | 'wrap' }>({
     meta: { preventGlobalToast: true },
-    mutationFn: async (score: number): Promise<{ isValid: boolean; updatedScore: number } | null> => {
+    mutationFn: async ({ score, gameMode }): Promise<{ isValid: boolean; updatedScore: number } | null> => {
       if (!gameSessionId) {
         console.error('[useGameScore] Cannot submit score without an active gameSessionId');
         return null;
@@ -232,6 +234,7 @@ export const useGameScore = () => {
         body: JSON.stringify({
           gameSessionId,
           score,
+          gameMode,
         }),
       });
 
@@ -255,7 +258,7 @@ export const useGameScore = () => {
       // Clear pending score locally if any
       setPendingScore(null);
 
-      if (variables === 0) {
+      if (variables.score === 0) {
         Toast.show({
           type: 'info',
           text1: 'GAME OVER',
@@ -265,7 +268,7 @@ export const useGameScore = () => {
         Toast.show({
           type: 'success',
           text1: 'SCORE SUBMITTED',
-          text2: `Score of ${variables} successfully submitted to leaderboard!`,
+          text2: `Score of ${variables.score} successfully submitted to leaderboard!`,
         });
       } else {
         Toast.show({
@@ -283,8 +286,8 @@ export const useGameScore = () => {
                              error.message?.includes('fetch');
       
       if (isNetworkError && gameSessionId) {
-        if (variables > 0) {
-          const offlineData = { gameSessionId, score: variables };
+        if (variables.score > 0) {
+          const offlineData = { gameSessionId, score: variables.score, gameMode: variables.gameMode };
           setPendingScore(offlineData);
           Toast.show({
             type: 'error',
@@ -329,9 +332,9 @@ export const useGameScore = () => {
 
   // Submit and validate the score wrapper
   const submitGameScore = useCallback(
-    async (score: number): Promise<{ isValid: boolean; updatedScore: number } | null> => {
+    async (score: number, gameMode: 'classic' | 'wrap'): Promise<{ isValid: boolean; updatedScore: number } | null> => {
       try {
-        return await submitMutation.mutateAsync(score);
+        return await submitMutation.mutateAsync({ score, gameMode });
       } catch (error) {
         console.error('[useGameScore] Error validating/submitting score:', error);
         return null;
