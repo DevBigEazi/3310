@@ -21,10 +21,10 @@ const getTickInterval = (speedStat: number): number => {
 // Score multiplier: rewards players who pick harder (faster) avatars.
 // Each food pickup grants 5 * multiplier points.
 const getScoreMultiplier = (speedStat: number): number => {
-  if (speedStat >= 70) return 4;  // GOLDEN COBRA  (75) – hardest
-  if (speedStat >= 60) return 3;  // LIME PYTHON   (65)
-  if (speedStat >= 50) return 2;  // MAGENTA MAMBA (55)
-  return 1;                        // CYAN VIPER    (45) – easiest
+  if (speedStat >= 50) return 4;  // GOLDEN COBRA  (55) – hardest
+  if (speedStat >= 40) return 3;  // LIME PYTHON   (45)
+  if (speedStat >= 30) return 2;  // MAGENTA MAMBA (35)
+  return 1;                        // CYAN VIPER    (15) – easiest
 };
 
 const getThemeColors = (color: string) => {
