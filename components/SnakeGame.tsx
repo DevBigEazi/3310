@@ -199,14 +199,12 @@ export default function SnakeGame({
           setStoreHighScore(newHighScore);
         }
         
-        if (result.isValid) {
+        if (result.isValid && finalScore > 0) {
           setShowShareModal(true);
-          if (finalScore > 0) {
-            setConfettiActive(true);
-            setTimeout(() => {
-              setConfettiActive(false);
-            }, 5000);
-          }
+          setConfettiActive(true);
+          setTimeout(() => {
+            setConfettiActive(false);
+          }, 5000);
         }
       }
     } catch (error) {

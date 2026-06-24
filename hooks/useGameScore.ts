@@ -255,7 +255,13 @@ export const useGameScore = () => {
       // Clear pending score locally if any
       setPendingScore(null);
 
-      if (data?.isValid) {
+      if (variables === 0) {
+        Toast.show({
+          type: 'info',
+          text1: 'GAME OVER',
+          text2: 'Score was 0. No life deducted, game did not count.',
+        });
+      } else if (data?.isValid) {
         Toast.show({
           type: 'success',
           text1: 'SCORE SUBMITTED',
@@ -277,13 +283,21 @@ export const useGameScore = () => {
                              error.message?.includes('fetch');
       
       if (isNetworkError && gameSessionId) {
-        const offlineData = { gameSessionId, score: variables };
-        setPendingScore(offlineData);
-        Toast.show({
-          type: 'error',
-          text1: 'SUBMISSION FAILED (OFFLINE)',
-          text2: 'Score saved locally. Tap "Submit Score" when your connection is stable.',
-        });
+        if (variables > 0) {
+          const offlineData = { gameSessionId, score: variables };
+          setPendingScore(offlineData);
+          Toast.show({
+            type: 'error',
+            text1: 'SUBMISSION FAILED (OFFLINE)',
+            text2: 'Score saved locally. Tap "Submit Score" when your connection is stable.',
+          });
+        } else {
+          Toast.show({
+            type: 'info',
+            text1: 'GAME OVER (OFFLINE)',
+            text2: 'Score was 0. No life deducted, game did not count.',
+          });
+        }
       } else {
         Toast.show({
           type: 'error',
