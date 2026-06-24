@@ -20,10 +20,10 @@ export default function Index() {
 
   useEffect(() => {
     const isAtRoot = !segments[0];
-    if (hasHydrated && isAtRoot) {
+    if (hasHydrated && isAtRoot && client.sdk.loaded) {
       checkAppStatus();
     }
-  }, [hasHydrated, client.auth.authenticatedUser, client.wallets.primary, segments]);
+  }, [hasHydrated, client.sdk.loaded, client.auth.authenticatedUser, client.wallets.primary, segments]);
 
   const checkAppStatus = async () => {
     try {

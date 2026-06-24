@@ -14,6 +14,7 @@ export function SessionSync() {
 
   useEffect(() => {
     if (!hasHydrated) return;
+    if (!client.sdk.loaded) return;
 
     const inTabsGroup = segments[0] === '(tabs)';
     const isProfile = segments[0] === 'profile';
@@ -35,7 +36,7 @@ export function SessionSync() {
       // We route back to index/auth so it can re-auth or prompt login
       router.replace('/(auth)/sign-in');
     }
-  }, [client.auth.authenticatedUser, token, segments, hasHydrated, logout, router]);
+  }, [client.auth.authenticatedUser, client.sdk.loaded, token, segments, hasHydrated, logout, router]);
 
   return null;
 }
