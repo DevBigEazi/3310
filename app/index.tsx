@@ -29,6 +29,17 @@ export default function Index() {
     try {
       setIsChecking(true);
 
+      // Fast path: if a backend JWT is already stored, treat the user as logged
+      // in and go straight to the game. The JWT is long-lived (3650 days) and
+      // the Dynamic session is NOT required for any Phase 1 gameplay.
+      // The QueryCache 401/403 handler will evict the token if the server ever
+      // rejects it, so we don't need an extra validity check here.
+      const storedToken = useAppStore.getState().token;
+      if (storedToken && onboardingCompleted) {
+        router.replace('/(tabs)/game');
+        return;
+      }
+
       if (onboardingCompleted) {
         // Check if authenticated on Dynamic
         if (client.auth.authenticatedUser) {

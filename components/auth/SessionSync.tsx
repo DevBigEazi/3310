@@ -19,21 +19,20 @@ export function SessionSync() {
     const inTabsGroup = segments[0] === '(tabs)';
     const isProfile = segments[0] === 'profile';
 
-    const isAuthenticatedDynamic = !!client.auth.authenticatedUser;
     const hasBackendToken = !!token;
 
-    // Case 1: Dynamic session is expired/inactive, but backend token still exists in store
-    if (!isAuthenticatedDynamic && hasBackendToken) {
-      console.log('[SessionSync] Dynamic session is inactive but backend token exists. Logging out.');
-      logout();
-      return;
-    }
+    // If we have a valid backend JWT, trust it as the primary session signal.
+    // Our backend JWT is long-lived (3650 days). The QueryCache 401/403 handler
+    // in _layout.tsx will automatically call logout() if the token is ever
+    // rejected by the server — no need to tie session validity to Dynamic's
+    // shorter-lived session here.
+    if (hasBackendToken) return;
 
-    // Case 2: User is on a protected screen, but has no active Dynamic session or backend token
-    if ((inTabsGroup || isProfile) && (!isAuthenticatedDynamic || !hasBackendToken)) {
-      console.log('[SessionSync] User on protected screen without active session. Redirecting to sign-in.');
-      
-      // We route back to index/auth so it can re-auth or prompt login
+    // No backend token at all: if the user is on a protected screen, redirect
+    // them to sign-in so they can authenticate.
+    if (inTabsGroup || isProfile) {
+      console.log('[SessionSync] No backend token on protected screen. Redirecting to sign-in.');
+      logout();
       router.replace('/(auth)/sign-in');
     }
   }, [client.auth.authenticatedUser, client.sdk.loaded, token, segments, hasHydrated, logout, router]);
