@@ -14,6 +14,7 @@ interface AppState {
   
   // Auth state
   token: string | null;
+  address: string | null;   // wallet address — persisted independently of Dynamic session
   username: string | null;
   avatarName: string;
   avatarColor: string;
@@ -26,7 +27,7 @@ interface AppState {
 
   // Actions
   setHasHydrated: (state: boolean) => void;
-  login: (token: string, username: string, avatarName?: string, avatarColor?: string) => void;
+  login: (token: string, username: string, address: string, avatarName?: string, avatarColor?: string) => void;
   logout: () => void;
   setOnboardingCompleted: (completed: boolean) => void;
   setAvatar: (name: string, color: string) => void;
@@ -41,6 +42,7 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       _hasHydrated: false,
       token: null,
+      address: null,
       username: null,
       avatarName: 'CYAN VIPER',
       avatarColor: '#00FFFF',
@@ -51,10 +53,11 @@ export const useAppStore = create<AppState>()(
 
       setHasHydrated: (state) => set({ _hasHydrated: state }),
       
-      login: (token, username, avatarName, avatarColor) =>
+      login: (token, username, address, avatarName, avatarColor) =>
         set((state) => ({
           token,
           username,
+          address,
           avatarName: avatarName || state.avatarName,
           avatarColor: avatarColor || state.avatarColor,
         })),
@@ -62,6 +65,7 @@ export const useAppStore = create<AppState>()(
       logout: () =>
         set({
           token: null,
+          address: null,
           username: null,
           gameSessionId: null,
           pendingScore: null,

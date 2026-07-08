@@ -14,13 +14,25 @@ export interface LeaderboardEntry {
   badges?: Badge[];
 }
 
-export const useLeaderboard = (type: 'weekly' | 'allTime'): UseQueryResult<LeaderboardEntry[], Error> => {
-  return useQuery<LeaderboardEntry[], Error>({
-    queryKey: ['leaderboard', type],
-    queryFn: async (): Promise<LeaderboardEntry[]> => {
+export interface LeaderboardResponse {
+  weekId: number;
+  startTime?: string;
+  endTime?: string;
+  leaderboard: LeaderboardEntry[];
+}
+
+export const useLeaderboard = (
+  type: 'weekly' | 'allTime',
+  weekId?: number,
+  options?: { enabled?: boolean }
+): UseQueryResult<LeaderboardResponse, Error> => {
+  return useQuery<LeaderboardResponse, Error>({
+    queryKey: ['leaderboard', type, weekId],
+    queryFn: async (): Promise<LeaderboardResponse> => {
       const token = useAppStore.getState().token;
       const endpoint = type === 'weekly' ? 'weekly' : 'all-time';
-      const response = await fetch(`${BACKEND_URL}/api/scores/leaderboard/${endpoint}`, {
+      const queryParam = weekId !== undefined ? `?weekId=${weekId}` : '';
+      const response = await fetch(`${BACKEND_URL}/api/scores/leaderboard/${endpoint}${queryParam}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : '',
@@ -30,7 +42,13 @@ export const useLeaderboard = (type: 'weekly' | 'allTime'): UseQueryResult<Leade
         throw new Error(`Failed to fetch ${type} leaderboard. Status: ${response.status}`);
       }
       const data = await response.json();
-      return (data.leaderboard || []) as LeaderboardEntry[];
+      return {
+        weekId: data.weekId,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        leaderboard: (data.leaderboard || []) as LeaderboardEntry[],
+      };
     },
+    enabled: options?.enabled,
   });
 };

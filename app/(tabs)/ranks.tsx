@@ -51,21 +51,77 @@ const renderMiniBadges = (badges: any[] | undefined): React.JSX.Element | null =
   );
 };
 
+const formatWeekSchedule = (startStr?: string, endStr?: string) => {
+  if (!startStr || !endStr) return '';
+  try {
+    const startDate = new Date(startStr);
+    const endDate = new Date(endStr);
+    
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const formatUTC = (d: Date) => {
+      const dayName = days[d.getUTCDay()];
+      const monthName = months[d.getUTCMonth()];
+      const dateNum = d.getUTCDate();
+      const hours = pad(d.getUTCHours());
+      const minutes = pad(d.getUTCMinutes());
+      return `${dayName}, ${monthName} ${dateNum} (${hours}:${minutes} UTC)`;
+    };
+    
+    return `${formatUTC(startDate)} - ${formatUTC(endDate)}`;
+  } catch (err) {
+    console.error('Error formatting schedule:', err);
+    return '';
+  }
+};
+
 export default function RanksScreen(): React.JSX.Element {
-  const [activeTab, setActiveTab] = useState<'weekly' | 'allTime'>('weekly');
+  const [activeTab, setActiveTab] = useState<'weekly' | 'lastWeek' | 'allTime'>('weekly');
   const currentUsername = useAppStore((state) => state.username);
 
   // Fetch both leaderboards in parallel for instant tab switching
   const weeklyQuery = useLeaderboard('weekly');
   const allTimeQuery = useLeaderboard('allTime');
 
-  const currentQuery = activeTab === 'weekly' ? weeklyQuery : allTimeQuery;
-  const leaderboardData = currentQuery.data || [];
-  const isLoading = activeTab === 'weekly' ? weeklyQuery.isLoading : allTimeQuery.isLoading;
+  const currentWeekId = weeklyQuery.data?.weekId;
+  const lastWeekId = currentWeekId !== undefined ? currentWeekId - 1 : undefined;
+  const hasLastWeek = lastWeekId !== undefined && lastWeekId >= 1;
+
+  const lastWeekQuery = useLeaderboard(
+    'weekly',
+    lastWeekId,
+    { enabled: hasLastWeek }
+  );
+
+  const getActiveQuery = () => {
+    switch (activeTab) {
+      case 'weekly':
+        return weeklyQuery;
+      case 'lastWeek':
+        return lastWeekQuery;
+      case 'allTime':
+        return allTimeQuery;
+    }
+  };
+
+  const currentQuery = getActiveQuery();
+  const leaderboardData = currentQuery.data?.leaderboard || [];
+  const isLoading = currentQuery.isLoading;
   const isRefreshing = currentQuery.isRefetching;
 
+  const scheduleText = formatWeekSchedule(
+    currentQuery.data?.startTime,
+    currentQuery.data?.endTime
+  );
+
+  const currentUserIndex = leaderboardData.findIndex(
+    (item) => item.username === currentUsername
+  );
+
   // Tab switcher
-  const handleTabChange = (tab: 'weekly' | 'allTime') => {
+  const handleTabChange = (tab: 'weekly' | 'lastWeek' | 'allTime') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveTab(tab);
   };
@@ -131,11 +187,25 @@ export default function RanksScreen(): React.JSX.Element {
           }`}
         >
           <Text
-            className={`font-pixel_bold text-sm tracking-wider ${
+            className={`font-pixel_bold text-[10px] tracking-wider ${
               activeTab === 'weekly' ? 'text-secondary' : 'text-grey-100'
             }`}
           >
-            WEEKLY COMP
+            WEEKLY
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => handleTabChange('lastWeek')}
+          className={`flex-1 pb-3 items-center ${
+            activeTab === 'lastWeek' ? 'border-b-4 border-secondary' : 'border-b-4 border-transparent'
+          }`}
+        >
+          <Text
+            className={`font-pixel_bold text-[10px] tracking-wider ${
+              activeTab === 'lastWeek' ? 'text-secondary' : 'text-grey-100'
+            }`}
+          >
+            LAST WEEK
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -145,20 +215,60 @@ export default function RanksScreen(): React.JSX.Element {
           }`}
         >
           <Text
-            className={`font-pixel_bold text-sm tracking-wider ${
+            className={`font-pixel_bold text-[10px] tracking-wider ${
               activeTab === 'allTime' ? 'text-secondary' : 'text-grey-100'
             }`}
           >
-            ALL-TIME HIGH
+            ALL-TIME
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Week Schedule Banner */}
+      {(activeTab === 'weekly' || activeTab === 'lastWeek') && scheduleText && !isLoading ? (
+        <View className="mb-4 bg-grey-200/5 border border-grey-200/20 px-3 py-2 rounded-lg items-center">
+          <Text className="font-arcade text-[8px] text-grey tracking-wider uppercase mb-1">
+            Competition Schedule (UTC)
+          </Text>
+          <Text className="font-pixel text-[8px] text-secondary text-center">
+            {scheduleText}
+          </Text>
+        </View>
+      ) : null}
+
+      {/* Last Week User Standing Banner */}
+      {activeTab === 'lastWeek' && hasLastWeek && !isLoading && (
+        currentUserIndex !== -1 ? (
+          currentUserIndex < 10 ? (
+            <View className="mb-4 p-3 bg-reward/10 border border-reward rounded-lg flex-row items-center gap-2">
+              <Ionicons name="trophy" size={12} color="#FFD700" />
+              <Text className="font-pixel text-[8px] text-reward flex-1">
+                🏆 CONGRATS! YOU PLACED IN THE TOP 10 last week (Rank: #{currentUserIndex + 1})!
+              </Text>
+            </View>
+          ) : (
+            <View className="mb-4 p-3 bg-[#1e0a15] border border-[#ff0055]/30 rounded-lg flex-row items-center gap-2">
+              <Ionicons name="alert-circle" size={12} color="#ff0055" />
+              <Text className="font-pixel text-[8px] text-[#ff0055] flex-1">
+                ⚠️ YOU DID NOT PLACE IN THE TOP 10 last week (Rank: #{currentUserIndex + 1}). Keep training!
+              </Text>
+            </View>
+          )
+        ) : (
+          <View className="mb-4 p-3 bg-[#1e0a15] border border-[#ff0055]/30 rounded-lg flex-row items-center gap-2">
+            <Ionicons name="alert-circle" size={12} color="#ff0055" />
+            <Text className="font-pixel text-[8px] text-[#ff0055] flex-1">
+              ⚠️ YOU DID NOT PLACE IN THE TOP 10 last week (Rank: NOT RANKED / NO SCORE RECORDED).
+            </Text>
+          </View>
+        )
+      )}
 
       {/* Leaderboard Table Headers */}
       <View className="flex-row px-4 py-2 border-b border-grey-200/20 bg-grey-200/10 rounded-t-lg">
         <Text className="w-[15%] font-arcade text-[8px] text-grey">RNK</Text>
         <Text className="w-[45%] font-arcade text-[8px] text-grey">AGENT</Text>
-        {activeTab === 'weekly' ? (
+        {activeTab === 'weekly' || activeTab === 'lastWeek' ? (
           <>
             <Text className="w-[20%] font-arcade text-[8px] text-grey text-right">SCORE</Text>
             <Text className="w-[20%] font-arcade text-[8px] text-grey text-right">STATS</Text>
@@ -194,11 +304,19 @@ export default function RanksScreen(): React.JSX.Element {
             />
           }
           ListEmptyComponent={
-            <View className="py-20 items-center justify-center border border-dashed border-grey-200/30 rounded-b-lg">
-              <Ionicons name="alert-circle-outline" size={32} color="#808080" />
-              <Text className="font-pixel_bold text-xs text-grey-100 mt-2">NO RECORDS REGISTERED</Text>
-              <Text className="font-poppins text-[10px] text-grey/80 mt-1">Be the first to record a score!</Text>
-            </View>
+            activeTab === 'lastWeek' && !hasLastWeek ? (
+              <View className="py-20 items-center justify-center border border-dashed border-grey-200/30 rounded-b-lg">
+                <Ionicons name="alert-circle-outline" size={32} color="#808080" />
+                <Text className="font-pixel_bold text-xs text-grey-100 mt-2">NO PREVIOUS COMPETITIONS</Text>
+                <Text className="font-poppins text-[10px] text-grey/80 mt-1">The application is currently in Week 1.</Text>
+              </View>
+            ) : (
+              <View className="py-20 items-center justify-center border border-dashed border-grey-200/30 rounded-b-lg">
+                <Ionicons name="alert-circle-outline" size={32} color="#808080" />
+                <Text className="font-pixel_bold text-xs text-grey-100 mt-2">NO RECORDS REGISTERED</Text>
+                <Text className="font-poppins text-[10px] text-grey/80 mt-1">Be the first to record a score!</Text>
+              </View>
+            )
           }
           renderItem={({ item, index }) => {
             const config = getRankStyles(index);
@@ -237,8 +355,8 @@ export default function RanksScreen(): React.JSX.Element {
                   {renderMiniBadges(item.badges)}
                 </View>
 
-                {/* Weekly Tab Columns */}
-                {activeTab === 'weekly' ? (
+                {/* Weekly / LastWeek Tab Columns */}
+                {activeTab === 'weekly' || activeTab === 'lastWeek' ? (
                   <>
                     {/* Weekly Accumulated Score */}
                     <Text className={`w-[20%] text-right ${config.scoreText}`}>

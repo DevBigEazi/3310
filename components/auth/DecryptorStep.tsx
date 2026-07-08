@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -111,7 +111,11 @@ export default function DecryptorStep({
           textContentType="oneTimeCode"
           autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
           style={{
-            ...StyleSheet.absoluteFillObject,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             opacity: 0.01,
             color: 'transparent',
             backgroundColor: 'transparent',

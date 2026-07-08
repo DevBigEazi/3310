@@ -56,7 +56,11 @@ export default function RetroCrtEffects({
 
 const styles = StyleSheet.create({
   scanlineOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     opacity: 0.08,
     backgroundColor: 'transparent',
   },
@@ -78,7 +82,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   bezelShadow: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderWidth: 10,
     borderColor: '#0A0E27',
     opacity: 0.9,

@@ -187,7 +187,7 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
-      <StatusBar style="light" translucent />
+      <StatusBar style="light" />
       <Toast config={toastConfig} />
     </QueryClientProvider>
   );

@@ -76,7 +76,7 @@ export const useSignIn = () => {
         const loginData = await loginResponse.json();
 
         if (loginData.token) {
-          login(loginData.token, loginData.player.username);
+          login(loginData.token, loginData.player.username, address);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           router.replace('/(tabs)/game');
         } else {
@@ -218,6 +218,7 @@ export const useSignIn = () => {
       login(
         registerData.token,
         registerData.player.username,
+        address,
         AVATARS[selectedAvatar].name,
         AVATARS[selectedAvatar].color
       );

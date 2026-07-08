@@ -12,7 +12,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.play3310.app",
       "associatedDomains": [
-        "webcredentials:auth.play3310.xyz",
         "webcredentials:auth.play3310.xyz"
       ],
       "infoPlist": {
@@ -47,7 +46,10 @@
         }
       ],
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

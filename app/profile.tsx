@@ -7,7 +7,6 @@ import { useAppStore } from '../store/useAppStore';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
-import { useReactiveClient } from '@dynamic-labs/react-hooks';
 import { dynamicClient } from '../client';
 import { AVATARS } from '../constants/config';
 import RetroCrtEffects from '../components/auth/RetroCrtEffects';
@@ -25,10 +24,12 @@ const BADGE_IMAGES = {
 
 export default function ProfileScreen(): React.JSX.Element {
   const router = useRouter();
-  const client = useReactiveClient(dynamicClient);
-  const address = client.wallets.primary?.address;
+  // Use the persisted wallet address from the Zustand store instead of
+  // client.wallets.primary?.address — which becomes undefined when the Dynamic
+  // session expires. Our address is stored at login and lives for the full JWT lifetime.
+  const address = useAppStore((state) => state.address);
   
-  const { data: profileData, isLoading, refetch } = usePlayerProfile(address);
+  const { data: profileData, isLoading, refetch } = usePlayerProfile(address ?? undefined);
   const profile = profileData?.player || null;
   const stats = profileData?.stats || null;
 

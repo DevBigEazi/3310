@@ -60,7 +60,7 @@ export default function Index() {
                 const loginData = await loginResponse.json();
                 
                 if (loginData.token) {
-                  login(loginData.token, loginData.player.username);
+                  login(loginData.token, loginData.player.username, address);
                   router.replace('/(tabs)/game');
                   return;
                 }
