@@ -59,7 +59,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     {
       subtitle: "STAGE 03: INSTANT ACCESS",
       title: "WEB3 EMBEDDED",
-      description: "Sign in with Google, Apple, or Email. Everything runs seamlessly in the background. Just play, earn, and spend.",
+      description: "Sign in with Email. Everything runs seamlessly in the background. Just play, earn, and spend.",
       image: require("@/assets/images/logo-nobg.png"),
       color: "#FFD700", // Gold
       glowClass: "text-reward",
@@ -137,8 +137,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             
             {/* Main Header */}
             <Text 
-              className={`font-arcade text-xl text-center mb-6 tracking-wide ${currentStep.glowClass}`}
+              className="font-arcade text-xl text-center mb-6 tracking-wide"
               style={{
+                color: currentStep.color,
                 textShadowColor: currentStep.color,
                 textShadowOffset: { width: 0, height: 0 },
                 textShadowRadius: 8,
@@ -227,7 +228,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           </View>
 
           {/* Compliance Info */}
-          <Text className="font-pixel_regular text-white text-[10px] text-grey-DEFAULT text-center leading-relaxed">
+          <Text className="font-pixel_regular text-[10px] text-grey-100 text-center leading-relaxed">
             By initializing, you accept the 3310 Protocol{"\n"}Terms of Service and Data Privacy Policy
           </Text>
         </View>
@@ -242,7 +243,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0E27',
   },
   scanlineOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     opacity: 0.08,
     backgroundColor: 'transparent',
   },
@@ -264,7 +269,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   bezelShadow: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderWidth: 10,
     borderColor: '#0A0E27',
     opacity: 0.9,

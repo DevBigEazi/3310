@@ -12,7 +12,7 @@ module.exports = {
         destructive: '#FF0000', // Errors / Game Over solid red
         score: '#00FF00', // Leaderboard ranks
         qualified: '#00FFFF', // Qualifications
-        reward: '#FFD700', // USDC/USDT rewards neon gold
+        reward: '#FFD700', // USDC rewards neon gold
         grey: {
           DEFAULT: '#808080', // Muted Grey
           100: '#C0C0C0', // Silver Grey
